@@ -220,7 +220,7 @@ header p {
   margin: 15px 0;
   text-align: center;
 }
-.diagram-box svg { max-width: 100%; height: auto; }
+.diagram-box svg { max-width: 260px; height: auto; display: block; margin: 0 auto; }
 .diagram-caption {
   font-size: 0.9em;
   color: #666;
