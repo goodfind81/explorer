@@ -30,7 +30,7 @@ export const chapter = {
       </div>
     </div>
 
-    <div class="diagram-box">
+    <div class="diagram-box medium">
       <svg viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg">
         <text x="210" y="20" text-anchor="middle" font-family="Comic Sans MS" font-size="14" font-weight="bold" fill="#333">Bounce Heights of a Table-tennis Ball</text>
 
