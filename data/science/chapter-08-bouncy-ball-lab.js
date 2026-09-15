@@ -48,36 +48,47 @@ export const chapter = {
       </div>
     </div>
 
-    <div class="pendulum-container">
-      <svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg">
-        <!-- Wall -->
-        <rect x="20" y="10" width="260" height="200" fill="#F8F9FA" stroke="#CCC" stroke-width="1" rx="6"/>
-        <!-- Measuring tape -->
-        <rect x="40" y="15" width="18" height="190" fill="#FFF9C4" stroke="#B7950B" stroke-width="1.5"/>
-        <line x1="40" y1="40" x2="50" y2="40" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="60" x2="50" y2="60" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="80" x2="50" y2="80" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="100" x2="50" y2="100" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="120" x2="50" y2="120" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="140" x2="50" y2="140" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="160" x2="50" y2="160" stroke="#B7950B" stroke-width="1"/>
-        <line x1="40" y1="180" x2="50" y2="180" stroke="#B7950B" stroke-width="1"/>
-        <text x="60" y="35" font-size="10" fill="#666">150 cm</text>
-        <text x="60" y="105" font-size="10" fill="#666">100 cm</text>
-        <text x="60" y="185" font-size="10" fill="#666">0 cm (floor)</text>
+    <div class="diagram-box medium">
+  <svg viewBox="0 0 360 260" xmlns="http://www.w3.org/2000/svg">
+    <!-- Wall / backdrop -->
+    <rect x="20" y="10" width="320" height="230" fill="#FAFBFF" stroke="#D6E4FF" stroke-width="1.5" rx="8"/>
 
-        <!-- Ball at 100 cm -->
-        <circle cx="140" cy="105" r="14" fill="#E74C3C"/>
-        <text x="160" y="108" font-size="10" fill="#333">drop height</text>
+    <!-- Measuring tape on left -->
+    <rect x="40" y="20" width="16" height="210" fill="#FFF9C4" stroke="#B7950B" stroke-width="1.5"/>
+    <line x1="40" y1="45" x2="56" y2="45" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="70" x2="56" y2="70" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="95" x2="56" y2="95" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="120" x2="56" y2="120" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="145" x2="56" y2="145" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="170" x2="56" y2="170" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="195" x2="56" y2="195" stroke="#B7950B" stroke-width="1"/>
+    <line x1="40" y1="220" x2="56" y2="220" stroke="#B7950B" stroke-width="1"/>
+    <text x="62" y="30" font-size="9" fill="#666">150 cm</text>
+    <text x="62" y="125" font-size="9" fill="#666">100 cm</text>
+    <text x="62" y="230" font-size="9" fill="#666">0 (floor)</text>
 
-        <!-- Ball bounce arc -->
-        <path d="M140,105 Q140,60 190,90" fill="none" stroke="#4A90E2" stroke-width="2" stroke-dasharray="4,3"/>
-        <circle cx="190" cy="90" r="14" fill="#4A90E2" opacity="0.7"/>
-        <text x="210" y="93" font-size="10" fill="#333">bounce height</text>
-        <line x1="190" y1="90" x2="190" y2="190" stroke="#4A90E2" stroke-width="1" stroke-dasharray="2,2"/>
-      </svg>
-      <div class="diagram-caption">Drop height (Independent) and bounce height (Dependent).</div>
-    </div>
+    <!-- Floor line -->
+    <line x1="20" y1="232" x2="340" y2="232" stroke="#333" stroke-width="2"/>
+
+    <!-- Drop ball (red) at 100 cm line -->
+    <circle cx="160" cy="120" r="16" fill="#E74C3C"/>
+    <text x="185" y="118" font-size="11" fill="#333" font-weight="bold">Drop ball</text>
+    <text x="185" y="132" font-size="9" fill="#888">(100 cm height)</text>
+
+    <!-- Bounce arc -->
+    <path d="M160,120 Q200,50 260,95" fill="none" stroke="#4A90E2" stroke-width="2" stroke-dasharray="5,3"/>
+
+    <!-- Bounce ball (blue) -->
+    <circle cx="260" cy="95" r="16" fill="#4A90E2" opacity="0.85"/>
+    <text x="285" y="90" font-size="11" fill="#333" font-weight="bold">Bounces up</text>
+    <text x="285" y="104" font-size="9" fill="#888">(bounce height)</text>
+
+    <!-- Legend at bottom -->
+    <text x="180" y="250" text-anchor="middle" font-size="10" fill="#555" font-style="italic">
+      Drop height = Independent Variable • Bounce height = Dependent Variable
+    </text>
+  </svg>
+</div>
 
     <div class="study-guide">
       <div class="sg-row">
