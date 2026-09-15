@@ -226,7 +226,7 @@ export function identifyDigitValue(opts = {}) {
   const explanation = `The digit ${targetDigit} is in the ${placeName} place. So its value is ${targetDigit} × ${formatNumber(placeValue)} = ${formatNumber(digitValue)}.`;
 
   if (!mc) {
-    return {
+    return { 
       question: `In ${formatted}, what is the value of the digit ${targetDigit}?`,
       answer: formatNumber(digitValue),
       explanation
@@ -519,6 +519,471 @@ export function standardFromWords(opts = {}) {
     question: `Write "${wordForm}" in standard form.`,
     options: choices,
     correct: correctIdx,
+    explanation
+  };
+}
+/* ==========================================================
+   SKILL: Compare two decimals
+   ========================================================== */
+
+/**
+ * Compare two decimals with <, >, or =.
+ */
+export function compareDecimals(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const a = generateDecimal(randInt(0, 3), randInt(0, 3));
+  const b = generateDecimal(randInt(0, 3), randInt(0, 3));
+
+  let answer;
+  if (a < b) answer = "<";
+  else if (a > b) answer = ">";
+  else answer = "=";
+
+  const explanation = `Line up the decimal points and compare digit by digit from left to right. ${a} ${answer} ${b}.`;
+
+  if (!mc) {
+    return {
+      question: `Compare: ${a} ___ ${b}  (Write <, >, or =)`,
+      answer,
+      explanation
+    };
+  }
+
+  const choices = shuffleArray(["<", ">", "="]).slice(0, 3);
+  // Ensure answer is included
+  if (!choices.includes(answer)) choices[0] = answer;
+  return {
+    question: `Which symbol makes this true?  ${a} ___ ${b}`,
+    options: choices,
+    correct: choices.indexOf(answer),
+    explanation
+  };
+}
+
+function generateDecimal(maxWholeDigits = 2, maxDecimalDigits = 3) {
+  const whole = maxWholeDigits === 0 ? 0 : randInt(0, Math.pow(10, maxWholeDigits) - 1);
+  const dCount = randInt(1, maxDecimalDigits);
+  let decStr = "";
+  for (let i = 0; i < dCount; i++) decStr += randInt(0, 9);
+  return parseFloat(`${whole}.${decStr}`);
+}
+
+/* ==========================================================
+   SKILL: Order decimals (least to greatest, greatest to least)
+   ========================================================== */
+
+export function orderDecimals(opts = {}) {
+  const count = opts.count || 4;
+  const direction = opts.direction || "least"; // "least" | "greatest"
+
+  const numbers = new Set();
+  while (numbers.size < count) {
+    numbers.add(generateDecimal(2, 3));
+  }
+  const list = [...numbers];
+
+  const sorted = [...list].sort((a, b) => a - b);
+  const answer = direction === "least" ? sorted : sorted.reverse();
+
+  const explanation = `${direction === "least" ? "Least to greatest" : "Greatest to least"}: line up the decimal points and compare digit by digit. ${answer.join(", ")}.`;
+
+  return {
+    question: `Order these from ${direction === "least" ? "least to greatest" : "greatest to least"}: ${list.join(", ")}`,
+    answer: answer.join(", "),
+    explanation
+  };
+}
+
+/* ==========================================================
+   SKILL: Add decimals
+   ========================================================== */
+
+export function addDecimals(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const termCount = opts.termCount || 2;
+  const terms = [];
+  for (let i = 0; i < termCount; i++) {
+    terms.push(generateDecimal(3, 2));
+  }
+
+  const rawSum = terms.reduce((a, b) => a + b, 0);
+  const answer = parseFloat(rawSum.toFixed(2));
+
+  const formattedTerms = terms.map(t => t.toFixed(2)).join(" + ");
+  const explanation = `Line up the decimal points and add: ${formattedTerms} = ${answer.toFixed(2)}.`;
+
+  if (!mc) {
+    return {
+      question: `What is the sum?  ${formattedTerms}`,
+      answer: answer.toFixed(2),
+      explanation
+    };
+  }
+
+  const wrongA = (answer + 0.1).toFixed(2);
+  const wrongB = (answer - 0.01).toFixed(2);
+  const wrongC = (answer + 1).toFixed(2);
+  const choices = shuffleArray([answer.toFixed(2), wrongA, wrongB, wrongC]);
+  return {
+    question: `What is the sum?  ${formattedTerms}`,
+    options: choices,
+    correct: choices.indexOf(answer.toFixed(2)),
+    explanation
+  };
+}
+
+/* ==========================================================
+   SKILL: Subtract decimals
+   ========================================================== */
+
+export function subtractDecimals(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  let a = generateDecimal(3, 2);
+  let b = generateDecimal(3, 2);
+  if (b > a) [a, b] = [b, a]; // ensure no negative result
+
+  const answer = parseFloat((a - b).toFixed(2));
+  const explanation = `Line up the decimal points and subtract: ${a.toFixed(2)} − ${b.toFixed(2)} = ${answer.toFixed(2)}.`;
+
+  if (!mc) {
+    return {
+      question: `What is the difference?  ${a.toFixed(2)} − ${b.toFixed(2)}`,
+      answer: answer.toFixed(2),
+      explanation
+    };
+  }
+
+  const wrongA = (answer + 0.1).toFixed(2);
+  const wrongB = (answer - 0.01).toFixed(2);
+  const wrongC = (answer + 1).toFixed(2);
+  const choices = shuffleArray([answer.toFixed(2), wrongA, wrongB, wrongC]);
+  return {
+    question: `What is the difference?  ${a.toFixed(2)} − ${b.toFixed(2)}`,
+    options: choices,
+    correct: choices.indexOf(answer.toFixed(2)),
+    explanation
+  };
+}
+
+/* ==========================================================
+   SKILL: Estimate sum by rounding each addend
+   ========================================================== */
+
+/**
+ * Estimate a sum by rounding each addend to a target place,
+ * then adding the rounded numbers.
+ * @param {string} roundTo - "hundred" | "ten" | "whole" | "tenth"
+ */
+export function estimateSum(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const roundTo = opts.roundTo || "hundred";
+
+  let a, b, roundedA, roundedB;
+  if (roundTo === "hundred") {
+    a = randInt(100, 899);
+    b = randInt(100, 899);
+    roundedA = Math.round(a / 100) * 100;
+    roundedB = Math.round(b / 100) * 100;
+  } else if (roundTo === "ten") {
+    a = randInt(20, 899);
+    b = randInt(20, 899);
+    roundedA = Math.round(a / 10) * 10;
+    roundedB = Math.round(b / 10) * 10;
+  } else if (roundTo === "whole") {
+    a = parseFloat((Math.random() * 200 + 10).toFixed(1));
+    b = parseFloat((Math.random() * 200 + 10).toFixed(1));
+    roundedA = Math.round(a);
+    roundedB = Math.round(b);
+  } else if (roundTo === "tenth") {
+    a = parseFloat((Math.random() * 100 + 5).toFixed(2));
+    b = parseFloat((Math.random() * 100 + 5).toFixed(2));
+    roundedA = Math.round(a * 10) / 10;
+    roundedB = Math.round(b * 10) / 10;
+  }
+
+  const estimate = roundedA + roundedB;
+  const explanation = `Round each addend to the nearest ${roundTo}: ${a} → ${roundedA}, ${b} → ${roundedB}. Then add: ${roundedA} + ${roundedB} = ${estimate}.`;
+
+  if (!mc) {
+    return {
+      question: `Estimate the sum by rounding each number to the nearest ${roundTo}: ${a} + ${b}`,
+      answer: estimate.toString(),
+      explanation
+    };
+  }
+
+  const wrongA = estimate + (roundTo === "hundred" ? 100 : roundTo === "ten" ? 10 : 1);
+  const wrongB = estimate - (roundTo === "hundred" ? 100 : roundTo === "ten" ? 10 : 1);
+  const wrongC = a + b; // exact answer (not an estimate)
+  const choices = shuffleArray([estimate.toString(), wrongA.toString(), wrongB.toString(), wrongC.toString()]);
+  return {
+    question: `Estimate the sum by rounding each number to the nearest ${roundTo}: ${a} + ${b}`,
+    options: choices,
+    correct: choices.indexOf(estimate.toString()),
+    explanation
+  };
+}
+
+/* ==========================================================
+   SKILL: Estimate difference by rounding each number
+   ========================================================== */
+
+export function estimateDifference(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const roundTo = opts.roundTo || "thousand";
+
+  let a, b, roundedA, roundedB;
+  if (roundTo === "thousand") {
+    a = randInt(2000, 9999);
+    b = randInt(1000, a - 500);
+    roundedA = Math.round(a / 1000) * 1000;
+    roundedB = Math.round(b / 1000) * 1000;
+  } else if (roundTo === "hundred") {
+    a = randInt(200, 999);
+    b = randInt(100, a - 50);
+    roundedA = Math.round(a / 100) * 100;
+    roundedB = Math.round(b / 100) * 100;
+  } else if (roundTo === "whole") {
+    a = parseFloat((Math.random() * 200 + 20).toFixed(1));
+    b = parseFloat((Math.random() * 100 + 5).toFixed(1));
+    roundedA = Math.round(a);
+    roundedB = Math.round(b);
+  }
+
+  const estimate = roundedA - roundedB;
+  const explanation = `Round each number to the nearest ${roundTo}: ${a} → ${roundedA}, ${b} → ${roundedB}. Then subtract: ${roundedA} − ${roundedB} = ${estimate}.`;
+
+  if (!mc) {
+    return {
+      question: `Estimate the difference by rounding each number to the nearest ${roundTo}: ${a} − ${b}`,
+      answer: estimate.toString(),
+      explanation
+    };
+  }
+
+  const wrongA = estimate + (roundTo === "thousand" ? 1000 : roundTo === "hundred" ? 100 : 1);
+  const wrongB = estimate - (roundTo === "thousand" ? 1000 : roundTo === "hundred" ? 100 : 1);
+  const wrongC = a - b;
+  const choices = shuffleArray([estimate.toString(), wrongA.toString(), wrongB.toString(), wrongC.toString()]);
+  return {
+    question: `Estimate the difference by rounding each number to the nearest ${roundTo}: ${a} − ${b}`,
+    options: choices,
+    correct: choices.indexOf(estimate.toString()),
+    explanation
+  };
+}
+
+/* ==========================================================
+   SKILL: Powers of 10 and exponents
+   ========================================================== */
+
+/**
+ * Evaluate 10^n, or n × 10^m.
+ */
+export function powersOf10(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const variant = opts.variant || "evaluate"; // "evaluate" | "multiply" | "identify"
+
+  if (variant === "evaluate") {
+    const n = randInt(2, 7);
+    const answer = Math.pow(10, n);
+    const explanation = `10^${n} means 10 multiplied by itself ${n} times: ${Array(n).fill("10").join(" × ")} = ${formatNumber(answer)}.`;
+
+    if (!mc) {
+      return {
+        question: `What is 10^${n} in standard form?`,
+        answer: formatNumber(answer),
+        explanation
+      };
+    }
+
+    const wrongA = Math.pow(10, n - 1);
+    const wrongB = Math.pow(10, n + 1);
+    const wrongC = 10 * n;
+    const choices = shuffleArray([
+      formatNumber(answer),
+      formatNumber(wrongA),
+      formatNumber(wrongB),
+      formatNumber(wrongC)
+    ]);
+    return {
+      question: `What is 10^${n} in standard form?`,
+      options: choices,
+      correct: choices.indexOf(formatNumber(answer)),
+      explanation
+    };
+  }
+
+  if (variant === "multiply") {
+    const base = randInt(2, 9);
+    const n = randInt(1, 5);
+    const answer = base * Math.pow(10, n);
+    const explanation = `${base} × 10^${n} = ${base} followed by ${n} zeros = ${formatNumber(answer)}.`;
+
+    if (!mc) {
+      return {
+        question: `What is ${base} × 10^${n}?`,
+        answer: formatNumber(answer),
+        explanation
+      };
+    }
+
+    const wrongA = base * Math.pow(10, n - 1);
+    const wrongB = base * Math.pow(10, n + 1);
+    const wrongC = base + Math.pow(10, n);
+    const choices = shuffleArray([
+      formatNumber(answer),
+      formatNumber(wrongA),
+      formatNumber(wrongB),
+      formatNumber(wrongC)
+    ]);
+    return {
+      question: `What is ${base} × 10^${n}?`,
+      options: choices,
+      correct: choices.indexOf(formatNumber(answer)),
+      explanation
+    };
+  }
+
+  if (variant === "identify") {
+    const n = randInt(3, 6);
+    const value = Math.pow(10, n);
+    const explanation = `${formatNumber(value)} has ${n} zeros, so it equals 10^${n}.`;
+
+    if (!mc) {
+      return {
+        question: `Write ${formatNumber(value)} as a power of 10.`,
+        answer: `10^${n}`,
+        explanation
+      };
+    }
+
+    const wrongA = `10^${n - 1}`;
+    const wrongB = `10^${n + 1}`;
+    const wrongC = `${n} × 10`;
+    const choices = shuffleArray([`10^${n}`, wrongA, wrongB, wrongC]);
+    return {
+      question: `Which shows ${formatNumber(value)} as a power of 10?`,
+      options: choices,
+      correct: choices.indexOf(`10^${n}`),
+      explanation
+    };
+  }
+}
+
+/* ==========================================================
+   SKILL: Fraction ↔ Decimal
+   ========================================================== */
+
+/**
+ * Convert between fractions with denominators 10, 100, 1,000
+ * and decimals.
+ * @param {string} direction - "toDecimal" | "toFraction"
+ */
+export function fractionDecimal(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const direction = opts.direction || "toDecimal";
+
+  // Denominator
+  const denom = pick([10, 100, 1000]);
+  const places = denom === 10 ? 1 : denom === 100 ? 2 : 3;
+  const numerator = randInt(1, denom - 1);
+
+  if (direction === "toDecimal") {
+    const decimalValue = (numerator / denom).toFixed(places);
+    const explanation = `${numerator}/${denom} = ${decimalValue}. The denominator tells you how many decimal places: ${denom} → ${places} place${places > 1 ? "s" : ""}.`;
+
+    if (!mc) {
+      return {
+        question: `Write the fraction ${numerator}/${formatNumber(denom)} as a decimal.`,
+        answer: decimalValue,
+        explanation
+      };
+    }
+
+    const wrongA = (numerator / denom / 10).toFixed(places + 1);
+    const wrongB = (numerator / denom * 10).toFixed(places);
+    const wrongC = numerator.toString();
+    const choices = shuffleArray([decimalValue, wrongA, wrongB, wrongC]);
+    return {
+      question: `Which decimal equals ${numerator}/${formatNumber(denom)}?`,
+      options: choices,
+      correct: choices.indexOf(decimalValue),
+      explanation
+    };
+  }
+
+  if (direction === "toFraction") {
+    const decimalStr = `${numerator}`.padStart(places, "0");
+    const decimalValue = parseFloat(`0.${decimalStr}`);
+    const answer = `${numerator}/${formatNumber(denom)}`;
+    const explanation = `The decimal ${decimalValue} has ${places} decimal place${places > 1 ? "s" : ""}, so the denominator is ${formatNumber(denom)}. The digits after the decimal point become the numerator: ${numerator}.`;
+
+    if (!mc) {
+      return {
+        question: `Write ${decimalValue} as a fraction.`,
+        answer,
+        explanation
+      };
+    }
+
+    const wrongDenom = denom === 10 ? 100 : denom === 100 ? 1000 : 10;
+    const wrongA = `${numerator}/${formatNumber(wrongDenom)}`;
+    const wrongB = `${numerator * 10}/${formatNumber(denom)}`;
+    const wrongC = `${numerator}/${formatNumber(denom * 10)}`;
+    const choices = shuffleArray([answer, wrongA, wrongB, wrongC]);
+    return {
+      question: `Which fraction equals ${decimalValue}?`,
+      options: choices,
+      correct: choices.indexOf(answer),
+      explanation
+    };
+  }
+}
+
+/* ==========================================================
+   SKILL: Identify place of a digit in a decimal
+   ========================================================== */
+
+/**
+ * Example: "In 3.457, which digit is in the hundredths place?"
+ */
+export function identifyDecimalPlace(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const whole = randInt(0, 99);
+  const tenths = randInt(0, 9);
+  const hundredths = randInt(0, 9);
+  const thousandths = randInt(0, 9);
+
+  const number = `${whole}.${tenths}${hundredths}${thousandths}`;
+  const places = ["tenths", "hundredths", "thousandths"];
+  const targetIdx = randInt(0, 2);
+  const targetPlace = places[targetIdx];
+  const targetDigit = [tenths, hundredths, thousandths][targetIdx];
+
+  const explanation = `Starting from the decimal point and moving right: tenths, hundredths, thousandths. So the ${targetPlace} digit in ${number} is ${targetDigit}.`;
+
+  if (!mc) {
+    return {
+      question: `In ${number}, what digit is in the ${targetPlace} place?`,
+      answer: targetDigit.toString(),
+      explanation
+    };
+  }
+
+  const wrongA = (targetDigit + 1) % 10;
+  const wrongB = (targetDigit + 2) % 10;
+  const wrongC = (targetDigit + 3) % 10;
+  const choices = shuffleArray([
+    targetDigit.toString(),
+    wrongA.toString(),
+    wrongB.toString(),
+    wrongC.toString()
+  ]);
+  return {
+    question: `In ${number}, what digit is in the ${targetPlace} place?`,
+    options: choices,
+    correct: choices.indexOf(targetDigit.toString()),
     explanation
   };
 }
