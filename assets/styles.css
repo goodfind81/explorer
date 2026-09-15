@@ -650,3 +650,437 @@ tr:nth-child(even) { background: #F8F9FA; }
   .card { padding: 15px; }
   .stat-box .stat-value { font-size: 1.6em; }
 }
+
+/* ==========================================================
+   DAILY HOMEWORK (Kumon-style sheets)
+   ========================================================== */
+
+.dh-sheet {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border-left: 6px solid var(--primary-blue);
+}
+
+.dh-header {
+  text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 2px dashed #E9ECEF;
+  margin-bottom: 20px;
+}
+
+.dh-day {
+  font-size: 0.85em;
+  font-weight: bold;
+  color: var(--primary-blue);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.dh-title {
+  font-size: 1.4em;
+  font-weight: bold;
+  color: var(--text-dark);
+}
+
+/* ---- Remember box ---- */
+.dh-remember {
+  background: #FFF9C4;
+  border-left: 4px solid var(--accent-yellow);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 16px 0;
+}
+.dh-remember-title {
+  font-weight: bold;
+  color: #856404;
+  margin-bottom: 6px;
+  font-size: 1em;
+}
+.dh-remember-body {
+  font-size: 0.98em;
+  color: #444;
+  line-height: 1.5;
+}
+
+/* ---- Worked example ---- */
+.dh-example {
+  background: #E3F2FD;
+  border-left: 4px solid var(--primary-blue);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 16px 0;
+}
+.dh-example-title {
+  font-weight: bold;
+  color: #1565C0;
+  margin-bottom: 6px;
+  font-size: 1em;
+}
+.dh-example-body {
+  font-size: 1em;
+  color: #333;
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ---- Problems list ---- */
+.dh-problems {
+  margin: 20px 0;
+}
+.dh-problems-title {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: var(--primary-purple);
+  margin-bottom: 12px;
+}
+.dh-problem-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.dh-problem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #F1F3F5;
+}
+.dh-problem:last-child { border-bottom: none; }
+
+.dh-problem::before {
+  content: counter(dh-prob) ".";
+  counter-increment: dh-prob;
+  font-weight: bold;
+  color: var(--text-muted);
+  min-width: 28px;
+  text-align: right;
+}
+.dh-problem-list {
+  counter-reset: dh-prob;
+}
+
+.dh-q-text {
+  flex: 1;
+  font-size: 1em;
+  color: var(--text-dark);
+}
+
+.dh-input {
+  width: 140px;
+  padding: 8px 12px;
+  border: 2px solid #D6E4FF;
+  border-radius: 8px;
+  font-size: 1em;
+  font-family: 'Courier New', monospace;
+  background: #FAFBFF;
+  color: var(--text-dark);
+  transition: all 0.15s;
+}
+.dh-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+.dh-input:disabled {
+  background: #F8F9FA;
+  cursor: default;
+}
+.dh-input.dh-correct {
+  background: #D4EDDA;
+  border-color: #28A745;
+  color: #155724;
+  font-weight: bold;
+}
+.dh-input.dh-incorrect {
+  background: #F8D7DA;
+  border-color: #DC3545;
+  color: #721C24;
+}
+
+/* Mobile: stack text + input */
+@media (max-width: 600px) {
+  .dh-problem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .dh-input {
+    width: 100%;
+  }
+  .dh-problem::before {
+    text-align: left;
+  }
+}
+
+/* ---- Actions ---- */
+.dh-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+.dh-check-btn {
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 28px;
+  font-size: 1.05em;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+  transition: all 0.2s;
+}
+.dh-check-btn:hover {
+  background: #357ABD;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(74, 144, 226, 0.4);
+}
+
+.dh-retry-btn {
+  background: var(--accent-orange);
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 28px;
+  font-size: 1.05em;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 10px rgba(230, 126, 34, 0.3);
+  transition: all 0.2s;
+}
+.dh-retry-btn:hover {
+  background: #D35400;
+  transform: translateY(-2px);
+}
+
+/* ---- Results ---- */
+.dh-results {
+  margin-top: 24px;
+}
+
+.dh-score {
+  text-align: center;
+  padding: 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+.dh-score.dh-pass {
+  background: #D4EDDA;
+  border: 2px solid #28A745;
+}
+.dh-score.dh-fail {
+  background: #FFF3CD;
+  border: 2px solid #FFC107;
+}
+
+.dh-score-emoji {
+  font-size: 3em;
+  margin-bottom: 6px;
+}
+.dh-score-text {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: var(--text-dark);
+}
+.dh-score-sub {
+  font-size: 1em;
+  color: #555;
+  margin-top: 8px;
+}
+
+/* ---- Missed problems review ---- */
+.dh-missed {
+  background: #FFF8F8;
+  border-left: 5px solid var(--accent-red);
+  border-radius: 12px;
+  padding: 18px;
+  margin-top: 16px;
+}
+.dh-missed h4 {
+  color: var(--accent-red);
+  margin-bottom: 12px;
+  font-size: 1.1em;
+}
+.dh-missed-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #F5D5D5;
+}
+.dh-missed-item:last-child { border-bottom: none; }
+.dh-missed-q {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6px;
+}
+.dh-missed-a {
+  font-size: 0.95em;
+  color: #666;
+  margin-top: 3px;
+}
+.dh-missed-a .dh-user-ans {
+  color: var(--accent-red);
+  font-weight: bold;
+  text-decoration: line-through;
+}
+.dh-missed-a .dh-correct-ans {
+  color: #28A745;
+  font-weight: bold;
+}
+.dh-missed-explain {
+  font-size: 0.92em;
+  color: #555;
+  font-style: italic;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  border-radius: 6px;
+}
+
+/* ==========================================================
+   DAILY HOMEWORK DAY PICKER (boxes at the top of a chapter)
+   ========================================================== */
+
+.dh-picker {
+  background: #FAFBFF;
+  border: 2px solid #D6E4FF;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin: 16px 0 24px 0;
+}
+
+.dh-picker-title {
+  font-size: 1em;
+  font-weight: bold;
+  color: var(--primary-purple);
+  margin-bottom: 12px;
+}
+
+.dh-day-boxes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dh-day-box {
+  flex: 0 0 auto;
+  min-width: 80px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  border: 2px solid #E9ECEF;
+  background: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.95em;
+  transition: all 0.2s;
+  color: var(--text-dark);
+}
+.dh-day-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+}
+.dh-day-box .dh-day-label {
+  font-weight: bold;
+  font-size: 0.85em;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+.dh-day-box .dh-day-name {
+  font-size: 0.9em;
+  color: var(--text-dark);
+}
+
+/* States */
+.dh-day-box.dh-day-passed {
+  background: #D4EDDA;
+  border-color: #28A745;
+}
+.dh-day-box.dh-day-passed .dh-day-label {
+  color: #155724;
+}
+
+.dh-day-box.dh-day-failed {
+  background: #FFF3CD;
+  border-color: #FFC107;
+}
+
+.dh-day-box.dh-day-today {
+  border-color: var(--primary-blue);
+  border-width: 3px;
+  background: #E3F2FD;
+}
+
+.dh-day-box.dh-day-active {
+  border-color: var(--primary-purple);
+  border-width: 3px;
+  background: #F3E5F5;
+}
+
+@media (max-width: 600px) {
+  .dh-day-box {
+    min-width: 68px;
+    padding: 8px 10px;
+  }
+  .dh-day-box .dh-day-name {
+    font-size: 0.8em;
+  }
+}
+
+/* ==========================================================
+   DROPDOWN NAVIGATION (for Math chapters)
+   ========================================================== */
+
+.nav-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-dropdown label {
+  font-weight: bold;
+  color: var(--primary-purple);
+  font-size: 1em;
+}
+
+.nav-dropdown select {
+  padding: 10px 16px;
+  border-radius: 25px;
+  border: 3px solid var(--primary-purple);
+  background: white;
+  color: var(--primary-purple);
+  font-size: 1em;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 260px;
+  max-width: 100%;
+}
+.nav-dropdown select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.2);
+}
+
+@media (max-width: 600px) {
+  .nav-dropdown {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nav-dropdown select {
+    width: 100%;
+    min-width: 0;
+  }
+}
