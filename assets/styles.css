@@ -213,15 +213,10 @@ header p {
 }
 
 /* ---------- DIAGRAM BOX ---------- */
-.diagram-box {
-  background: #F8F9FA;
-  border-radius: 15px;
-  padding: 20px;
-  margin: 15px 0;
-  text-align: center;
-}
-.diagram-box svg { max-width: 100%; height: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.06)); }
-
+.diagram-box { background: #F8F9FA; border-radius: 15px; padding: 20px; margin: 15px 0; text-align: center; }
+.diagram-box svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+.diagram-box.medium svg { max-width: 460px; }
+.diagram-box.narrow svg { max-width: 260px; }
 .diagram-caption {
   font-size: 0.9em;
   color: #666;
