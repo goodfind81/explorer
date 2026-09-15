@@ -52,7 +52,7 @@ export const chapter = {
     <h3>📖 How to Read a Graduated Cylinder</h3>
     <p>The <strong>meniscus</strong> is the curved line at the top of the liquid. Always read the number at the <strong>bottom of the curve</strong> with your eye level with the liquid.</p>
 
-    <div class="diagram-box">
+    <div class="diagram-box narrow">
       <svg viewBox="0 0 220 280" xmlns="http://www.w3.org/2000/svg">
         <rect x="70" y="30" width="80" height="200" fill="#EAF4FF" stroke="#4A90E2" stroke-width="3" rx="6"/>
         <rect x="73" y="130" width="74" height="97" fill="#7FB3D5" opacity="0.85"/>
