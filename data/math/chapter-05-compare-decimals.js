@@ -299,68 +299,30 @@ export const chapter = {
   /* ==========================================================
      DAILY HOMEWORK
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Compare two decimals with <, >, or =",
+  skills: [
+    {
+      key: "compare-two",
+      label: "Compare two decimals with <, >, or =",
       generator: "compareDecimals",
       args: {},
-      count: 15,
       remember: "Line up the decimal points. Compare digit by digit from left to right. The first difference tells you which is greater.",
       workedExample: "Compare 3.45 and 3.49:\n3.45\n3.49\nTenths: 4 = 4\nHundredths: 5 vs 9 → 5 < 9\nSo 3.45 < 3.49"
     },
-
-    day2: {
-      skill: "Compare more decimals (with zero trick)",
-      generator: "compareDecimals",
-      args: {},
-      count: 15,
-      remember: "When one number has fewer decimal places, add zeros to the right to make them the same length. Then compare.",
-      workedExample: "Compare 8.6 and 8.64:\n8.60\n8.64\nHundredths: 0 vs 4 → 0 < 4\nSo 8.60 < 8.64"
-    },
-
-    day3: {
-      skill: "Order decimals (least to greatest)",
+    {
+      key: "order-least",
+      label: "Order decimals from least to greatest",
       generator: "orderDecimals",
       args: { count: 4, direction: "least" },
-      count: 12,
       remember: "Line up decimal points. Compare the leftmost place first. The smallest digit in the leftmost place is your smallest number.",
-      workedExample: "Order: 2.5, 2.35, 2.505\nAdd zeros: 2.500, 2.350, 2.505\nSmallest tenths: 3 → 2.35 is first\nThen 2.500 vs 2.505: hundredths 0 vs 0 (same), thousandths 0 vs 5 → 2.500 < 2.505\nOrder: 2.35, 2.5, 2.505"
+      workedExample: "Order: 2.5, 2.35, 2.505\nAdd zeros: 2.500, 2.350, 2.505\nSmallest tenths: 3 → 2.35 is first\nThen 2.500 vs 2.505: thousandths 0 vs 5 → 2.500 < 2.505\nOrder: 2.35, 2.5, 2.505"
     },
-
-    day4: {
-      skill: "Mixed: compare and order",
-      mix: [
-        { generator: "compareDecimals", args: {}, weight: 1, skill: "Compare" },
-        { generator: "orderDecimals", args: { count: 4, direction: "least" }, weight: 1, skill: "Order least to greatest" },
-        { generator: "orderDecimals", args: { count: 3, direction: "greatest" }, weight: 1, skill: "Order greatest to least" }
-      ],
-      count: 15,
-      remember: "Read each question carefully. 'Compare' wants <, >, or =. 'Order' wants the numbers listed.",
-      workedExample: "Compare: 4.5 ___ 4.48 → 4.5 > 4.48\nOrder 4.5, 4.48, 4.508 least to greatest: 4.48, 4.5, 4.508"
-    },
-
-    day5: {
-      skill: "Compare and order decimals (challenge)",
-      mix: [
-        { generator: "compareDecimals", args: {}, weight: 1, skill: "Compare" },
-        { generator: "orderDecimals", args: { count: 4, direction: "least" }, weight: 1, skill: "Order" },
-        { generator: "identifyDecimalPlace", args: {}, weight: 1, skill: "Place ID" }
-      ],
-      count: 15,
-      remember: "Mixed challenge day. Combine all the skills from this week.",
-      workedExample: "In 3.457, which digit is in the hundredths place? → 5"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
+    {
+      key: "order-greatest",
+      label: "Order decimals from greatest to least",
+      generator: "orderDecimals",
+      args: { count: 4, direction: "greatest" },
+      remember: "Same as least-to-greatest, but flip the order at the end.",
+      workedExample: "Order: 3.12, 3.5, 3.08\nGreatest first: 3.5, 3.12, 3.08"
     }
-  }
+  ]
 };

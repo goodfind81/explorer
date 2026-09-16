@@ -1,34 +1,106 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>4th Grade Science Explorer</title>
+<title>4th Grade Explorer</title>
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
 
-<header>
-  <h1>🔬 4th Grade Science Explorer</h1>
-  <p id="headerSubtitle">Loading…</p>
-</header>
+<!-- ==========================================================
+     HOME PAGE — subject picker + stars
+     ========================================================== -->
+<div id="homeView" class="view">
 
-<nav class="nav-tabs" id="subjectTabs">
-  <!-- Subject tabs (Science, later Math) injected by app.js -->
-</nav>
+  <header class="home-header">
+    <h1>🎒 4th Grade Explorer</h1>
+    <p>What are we learning today?</p>
+  </header>
 
-<nav class="nav-tabs" id="chapterTabs">
-  <!-- Chapter tabs for the active subject injected by app.js -->
-</nav>
+  <main id="homeContent">
+    <!-- Subject cards injected by home-page.js -->
+  </main>
 
-<main id="mainContent">
-  <!-- Chapter content or quiz views injected here -->
-</main>
+  <footer class="app-footer">
+    <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+  </footer>
 
-<footer class="app-footer">
-  <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
-</footer>
+</div>
+
+<!-- ==========================================================
+     SUBJECT VIEW — chapter dropdown + sections + homework button
+     ========================================================== -->
+<div id="subjectView" class="view" style="display:none;">
+
+  <header class="subject-header">
+    <button class="back-home-btn" onclick="App.goHome()">← Home</button>
+    <h1 id="subjectTitle">Subject</h1>
+  </header>
+
+  <nav class="subject-toolbar">
+    <div class="chapter-select-wrap">
+      <label for="chapterSelect">📘 Chapter:</label>
+      <select id="chapterSelect"></select>
+    </div>
+    <button class="homework-btn" id="homeworkBtn" onclick="App.openHomework()">
+      📝 Today's Homework
+    </button>
+  </nav>
+
+  <nav class="section-progress" id="sectionProgress">
+    <!-- Section tabs injected by chapter-view.js -->
+  </nav>
+
+  <main id="sectionContent">
+    <!-- Current section content injected by chapter-view.js -->
+  </main>
+
+  <footer class="app-footer">
+    <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+  </footer>
+
+</div>
+
+<!-- ==========================================================
+     HOMEWORK VIEW — today's sheet
+     ========================================================== -->
+<div id="homeworkView" class="view" style="display:none;">
+
+  <header class="subject-header">
+    <button class="back-home-btn" onclick="App.backFromHomework()">← Back</button>
+    <h1 id="homeworkTitle">Today's Homework</h1>
+  </header>
+
+  <main id="homeworkContent">
+    <!-- Homework sheet injected by homework-view.js -->
+  </main>
+
+  <footer class="app-footer">
+    <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+  </footer>
+
+</div>
+
+<!-- ==========================================================
+     PARENT DASHBOARD VIEW
+     ========================================================== -->
+<div id="parentView" class="view" style="display:none;">
+
+  <header class="subject-header">
+    <button class="back-home-btn" onclick="App.goHome()">← Home</button>
+    <h1>📊 Parent Dashboard</h1>
+  </header>
+
+  <main id="parentContent">
+    <!-- Dashboard injected by parent-dashboard.js -->
+  </main>
+
+  <footer class="app-footer">
+    <button class="nav-btn" onclick="App.goHome()">🏠 Back to Home</button>
+  </footer>
+
+</div>
 
 <!-- Core engine -->
 <script type="module" src="assets/app.js"></script>

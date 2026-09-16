@@ -270,69 +270,30 @@ export const chapter = {
   /* ==========================================================
      DAILY HOMEWORK
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Evaluate powers of 10",
+  skills: [
+    {
+      key: "evaluate-10n",
+      label: "Evaluate powers of 10",
       generator: "powersOf10",
       args: { variant: "evaluate" },
-      count: 15,
       remember: "The exponent tells you how many zeros to write after 1. 10^5 = 1 followed by 5 zeros = 100,000.",
-      workedExample: "10^3 = 1,000 (3 zeros)\n10^5 = 100,000 (5 zeros)\n10^7 = 10,000,000 (7 zeros)"
+      workedExample: "10^3 = 1,000\n10^5 = 100,000\n10^7 = 10,000,000"
     },
-
-    day2: {
-      skill: "Multiply single digits by powers of 10",
+    {
+      key: "multiply-10n",
+      label: "Multiply single digits by powers of 10",
       generator: "powersOf10",
       args: { variant: "multiply" },
-      count: 15,
-      remember: "Write the digit, then add the number of zeros equal to the exponent. 7 × 10^3 = 7 followed by 3 zeros = 7,000.",
+      remember: "Write the digit, then add the number of zeros equal to the exponent. 7 × 10^3 = 7,000.",
       workedExample: "4 × 10^2 = 400\n6 × 10^4 = 60,000\n9 × 10^6 = 9,000,000"
     },
-
-    day3: {
-      skill: "Write large numbers as a power of 10",
+    {
+      key: "identify-10n",
+      label: "Write large numbers as a power of 10",
       generator: "powersOf10",
       args: { variant: "identify" },
-      count: 15,
       remember: "Count the zeros in the number. That count is your exponent. 100,000 has 5 zeros → 10^5.",
-      workedExample: "1,000 = 10^3 (3 zeros)\n100,000 = 10^5 (5 zeros)\n10,000,000 = 10^7 (7 zeros)"
-    },
-
-    day4: {
-      skill: "Mixed powers of 10",
-      mix: [
-        { generator: "powersOf10", args: { variant: "evaluate" }, weight: 1, skill: "Evaluate 10^n" },
-        { generator: "powersOf10", args: { variant: "multiply" }, weight: 1, skill: "Multiply by 10^n" },
-        { generator: "powersOf10", args: { variant: "identify" }, weight: 1, skill: "Write as 10^n" }
-      ],
-      count: 15,
-      remember: "Read each problem. Is it asking for the value, the product, or the exponent form?",
-      workedExample: "10^4 = 10,000\n5 × 10^3 = 5,000\n100,000 = 10^5"
-    },
-
-    day5: {
-      skill: "Challenge — powers of 10 in different forms",
-      mix: [
-        { generator: "powersOf10", args: { variant: "evaluate" }, weight: 1, skill: "Evaluate" },
-        { generator: "powersOf10", args: { variant: "multiply" }, weight: 1, skill: "Multiply" },
-        { generator: "powersOf10", args: { variant: "identify" }, weight: 1, skill: "Identify" },
-        { generator: "expandedFormWhole", args: {}, weight: 1, skill: "Expanded form" }
-      ],
-      count: 15,
-      remember: "Challenge day! Mix of powers of 10 and expanded form. Take your time.",
-      workedExample: "3,000 = 3 × 10^3\n10^6 = 1,000,000\n4,325 in expanded form = (4×10^3) + (3×10^2) + (2×10^1) + (5×10^0)"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
+      workedExample: "1,000 = 10^3\n100,000 = 10^5\n10,000,000 = 10^7"
     }
-  }
+  ]
 };

@@ -351,68 +351,38 @@ export const chapter = {
   /* ==========================================================
      DAILY HOMEWORK
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Identify the value of a digit in a large number",
+  skills: [
+    {
+      key: "digit-value",
+      label: "Identify the value of a digit in a large number",
       generator: "identifyDigitValue",
       args: {},
-      count: 15,
       remember: "Find the digit's place, then multiply the digit by that place value.",
       workedExample: "In 6,346,105:\n• 4 is in the ten-thousands place\n• Value = 4 × 10,000 = 40,000"
     },
-
-    day2: {
-      skill: "Write large numbers in expanded form with exponents",
+    {
+      key: "expanded-whole",
+      label: "Write large numbers in expanded form with exponents",
       generator: "expandedFormWhole",
       args: {},
-      count: 15,
       remember: "Skip the zeros. Only include non-zero digits. Each digit's exponent is its position from the right (starting at 0).",
       workedExample: "720,080 =\n(7 × 10^5) + (2 × 10^4) + (8 × 10^1)"
     },
-
-    day3: {
-      skill: "Write large numbers in word form",
+    {
+      key: "word-whole",
+      label: "Write large numbers in word form",
       generator: "numberNameWhole",
       args: {},
-      count: 15,
-      remember: "Break the number into groups of 3 (ones, thousands, millions). Read each group, then say the group name.",
+      remember: "Break the number into groups of 3 (ones, thousands, millions). Read each group.",
       workedExample: "3,152,308 = 'three million, one hundred fifty-two thousand, three hundred eight'"
     },
-
-    day4: {
-      skill: "Mixed place-value skills",
-      mix: [
-        { generator: "identifyDigitValue", args: {}, weight: 1, skill: "Digit value" },
-        { generator: "expandedFormWhole", args: {}, weight: 1, skill: "Expanded form" },
-        { generator: "numberNameWhole", args: {}, weight: 1, skill: "Word form" }
-      ],
-      count: 15,
-      remember: "Read carefully — each problem is a different skill!",
-      workedExample: "In 4,582,731 the 8 is in the hundred-thousands place → 800,000."
-    },
-
-    day5: {
-      skill: "Challenge — standard form and mixed review",
-      mix: [
-        { generator: "standardFromWords", args: {}, weight: 1, skill: "Words → standard" },
-        { generator: "identifyDigitValue", args: {}, weight: 1, skill: "Digit value" },
-        { generator: "expandedFormWhole", args: {}, weight: 1, skill: "Expanded form" }
-      ],
-      count: 15,
-      remember: "Challenge day! Read words carefully and convert them into standard form. Watch out for place-value mistakes.",
-      workedExample: "six hundred forty million, four hundred nine thousand, two hundred ten = 640,409,210"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
+    {
+      key: "standard-from-words",
+      label: "Write words as standard form",
+      generator: "standardFromWords",
+      args: {},
+      remember: "Align each word to its place: thousands, hundreds, tens, ones.",
+      workedExample: "'six hundred forty million, four hundred nine thousand, two hundred ten' → 640,409,210"
     }
-  }
+  ]
 };

@@ -326,80 +326,46 @@ export const chapter = {
   /* ==========================================================
      DAILY HOMEWORK — mixed review (borrows from all chapters)
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Round to a place (all places)",
-      mix: [
-        { generator: "roundToPlace", args: { place: "tenth" }, weight: 1, skill: "Round tenth" },
-        { generator: "roundToPlace", args: { place: "hundredth" }, weight: 1, skill: "Round hundredth" },
-        { generator: "roundToPlace", args: { place: "whole" }, weight: 1, skill: "Round whole" },
-        { generator: "roundToPlace", args: { place: "hundred" }, weight: 1, skill: "Round hundred" }
-      ],
-      count: 15,
-      remember: "Review day! Round to whatever place the problem asks. Watch the digit to the right of your rounding place.",
+  skills: [
+    {
+      key: "review-round",
+      label: "Review: Rounding to a place",
+      generator: "roundToPlace",
+      args: { place: "tenth" },
+      remember: "Round to whatever place the problem asks. Watch the digit to the right of your rounding place.",
       workedExample: "2.36 → 2.4 (tenth)\n10.278 → 10.28 (hundredth)\n68,472 → 68,000 (thousand)"
     },
-
-    day2: {
-      skill: "Compare and order decimals",
-      mix: [
-        { generator: "compareDecimals", args: {}, weight: 1, skill: "Compare" },
-        { generator: "orderDecimals", args: { count: 4, direction: "least" }, weight: 1, skill: "Order" },
-        { generator: "orderDecimals", args: { count: 3, direction: "greatest" }, weight: 1, skill: "Order descending" }
-      ],
-      count: 15,
+    {
+      key: "review-compare",
+      label: "Review: Compare decimals",
+      generator: "compareDecimals",
+      args: {},
       remember: "Line up the decimal points. Compare digit by digit from the left. Add zeros when needed.",
       workedExample: "Compare 5.62 and 5.7 → 5.62 < 5.70 → 5.62 < 5.7"
     },
-
-    day3: {
-      skill: "Fraction ↔ decimal conversions",
-      mix: [
-        { generator: "fractionDecimal", args: { direction: "toFraction" }, weight: 1, skill: "Decimal → fraction" },
-        { generator: "fractionDecimal", args: { direction: "toDecimal" }, weight: 1, skill: "Fraction → decimal" },
-        { generator: "identifyDecimalPlace", args: {}, weight: 1, skill: "Place ID" }
-      ],
-      count: 15,
+    {
+      key: "review-fraction-decimal",
+      label: "Review: Fractions and decimals",
+      generator: "fractionDecimal",
+      args: { direction: "toDecimal" },
       remember: "Denominator tells you the decimal places: 10 → 1 place, 100 → 2 places, 1,000 → 3 places.",
-      workedExample: "0.05 = 5/100\n11/1,000 = 0.011\nIn 3.457, the 5 is in hundredths"
+      workedExample: "11/1,000 = 0.011\n5/100 = 0.05"
     },
-
-    day4: {
-      skill: "Whole-number place value & expanded form",
-      mix: [
-        { generator: "identifyDigitValue", args: {}, weight: 1, skill: "Digit value" },
-        { generator: "expandedFormWhole", args: {}, weight: 1, skill: "Expanded form" },
-        { generator: "numberNameWhole", args: {}, weight: 1, skill: "Word form" }
-      ],
-      count: 15,
-      remember: "Each place is 10 times the value of the place to its right. Skip zeros in expanded form.",
+    {
+      key: "review-expanded",
+      label: "Review: Expanded form",
+      generator: "expandedFormWhole",
+      args: {},
+      remember: "Skip zeros. Include each non-zero digit multiplied by its power of 10.",
       workedExample: "720,080 → (7×10^5) + (2×10^4) + (8×10^1)"
     },
-
-    day5: {
-      skill: "Ultimate mixed review (all Topic 1 skills)",
-      mix: [
-        { generator: "roundToPlace", args: { place: "tenth" }, weight: 1, skill: "Round tenth" },
-        { generator: "compareDecimals", args: {}, weight: 1, skill: "Compare" },
-        { generator: "fractionDecimal", args: { direction: "toDecimal" }, weight: 1, skill: "Fraction to decimal" },
-        { generator: "expandedFormWhole", args: {}, weight: 1, skill: "Expanded form" },
-        { generator: "estimateSum", args: { roundTo: "hundred" }, weight: 1, skill: "Estimate sum" }
-      ],
-      count: 15,
-      remember: "This is the ultimate test. Read each problem carefully. It could be about any Topic 1 skill.",
-      workedExample: "Round 3.456 to tenth → 3.5\nCompare 5.62 vs 5.7 → 5.62 < 5.7\n5/100 = 0.05\n720,080 expanded = (7×10^5) + (2×10^4) + (8×10^1)\n398 + 612 ≈ 400 + 600 = 1,000"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
+    {
+      key: "review-estimate",
+      label: "Review: Estimate sums and differences",
+      generator: "estimateSum",
+      args: { roundTo: "hundred" },
+      remember: "Round EACH number first, then add. Don't round the final answer.",
+      workedExample: "398 + 612:\n398 → 400\n612 → 600\n400 + 600 = 1,000"
     }
-  }
+  ]
 };

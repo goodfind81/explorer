@@ -246,68 +246,46 @@ export const chapter = {
      Each day declares which generator to use. The generators
      produce fresh questions every time the sheet opens.
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Round to the nearest tenth",
+  skills: [
+    {
+      key: "round-tenth",
+      label: "Round to the nearest tenth",
       generator: "roundToPlace",
       args: { place: "tenth" },
-      count: 15,
-      remember: "Find the tenths digit. Look at the digit to its right. If it's 5 or more, round up. If less than 5, keep the same.",
+      remember: "Find the tenths digit. Look at the digit to its right. If it's 5 or more, round up. Otherwise, keep the same.",
       workedExample: "2.36 → 2.4\n\n(look at the 6 after 3 → 6 is 5+ → round 3 up to 4)"
     },
-
-    day2: {
-      skill: "Round to the nearest hundredth",
+    {
+      key: "round-hundredth",
+      label: "Round to the nearest hundredth",
       generator: "roundToPlace",
       args: { place: "hundredth" },
-      count: 15,
-      remember: "Find the hundredths digit. Look at the digit to its right. Round up if 5 or more.",
+      remember: "Find the hundredths digit. Look at the digit to its right. Round up if it's 5 or more.",
       workedExample: "8.542 → 8.54\n\n(look at the 2 after 4 → 2 is less than 5 → keep 4)"
     },
-
-    day3: {
-      skill: "Round to the nearest whole number",
+    {
+      key: "round-whole",
+      label: "Round to the nearest whole number",
       generator: "roundToPlace",
       args: { place: "whole" },
-      count: 15,
-      remember: "Look at the first digit after the decimal point. If it's 5 or more, round the whole number up. If less than 5, keep the whole number the same.",
-      workedExample: "3.2 → 3\n\n(look at the 2 → 2 is less than 5 → keep 3)"
+      remember: "Look at the first digit after the decimal point. If it's 5 or more, round the whole number up. If less, keep the same.",
+      workedExample: "3.2 → 3\n\n(look at the 2 → less than 5 → keep 3)"
     },
-
-    day4: {
-      skill: "Mixed rounding (tenth, hundredth, whole)",
-      mix: [
-        { generator: "roundToPlace", args: { place: "tenth" }, weight: 1, skill: "Round to tenth" },
-        { generator: "roundToPlace", args: { place: "hundredth" }, weight: 1, skill: "Round to hundredth" },
-        { generator: "roundToPlace", args: { place: "whole" }, weight: 1, skill: "Round to whole" }
-      ],
-      count: 15,
-      remember: "Read each problem carefully. The rounding place changes! Underline the rounding digit first.",
-      workedExample: "3.456 to the nearest tenth → 3.5\n3.456 to the nearest hundredth → 3.46\n3.456 to the nearest whole → 3"
+    {
+      key: "round-hundred",
+      label: "Round to the nearest hundred",
+      generator: "roundToPlace",
+      args: { place: "hundred" },
+      remember: "Find the hundreds digit. Look at the digit to its right. If it's 5 or more, round up. Otherwise keep the same.",
+      workedExample: "428.1 → 400\n\n(look at the 2 after 4 → less than 5 → keep 4, all others become 0)"
     },
-
-    day5: {
-      skill: "Round to hundred and thousand + estimate sums",
-      mix: [
-        { generator: "roundToPlace", args: { place: "hundred" }, weight: 1, skill: "Round to hundred" },
-        { generator: "roundToPlace", args: { place: "thousand" }, weight: 1, skill: "Round to thousand" },
-        { generator: "estimateSum", args: { roundTo: "hundred" }, weight: 1, skill: "Estimate sum" }
-      ],
-      count: 15,
-      remember: "For estimation, round EACH number first, then do the math. Don't round the final answer!",
-      workedExample: "Estimate 398 + 612:\n398 → 400\n612 → 600\n400 + 600 = 1,000"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
+    {
+      key: "round-thousand",
+      label: "Round to the nearest thousand",
+      generator: "roundToPlace",
+      args: { place: "thousand" },
+      remember: "Find the thousands digit. Look at the digit to its right. If it's 5 or more, round up.",
+      workedExample: "68,472 → 68,000\n\n(look at the 4 after 8 → less than 5 → keep 8, all others become 0)"
     }
-  }
+  ]
 };

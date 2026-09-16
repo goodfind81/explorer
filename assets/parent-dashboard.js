@@ -1,26 +1,27 @@
 /* ==========================================================
    parent-dashboard.js
-   Renders the Parent Dashboard into the main content area.
-   Shows:
-     - Overall stats
-     - Per-chapter performance (from quizzes)
-     - Daily Homework progress: which days passed, which pending
-     - Day-by-day answer key for daily homework
-     - Recent attempts table
-     - Most-missed questions
+   Parent Dashboard, reorganized around skill mastery.
+
+   Sections:
+     1. Overall stats (attempts, avg, time)
+     2. Skill mastery by subject
+        - Which skill is current
+        - How many sessions passed (out of 5)
+        - Full skill history (mastered, in progress, not started)
+     3. Homework history per subject
+        - Every homework attempt with score, duration
+        - Click any attempt to see the full answer key
+     4. Quiz performance by chapter
+     5. Recent attempts (all types)
+     6. Most-missed questions
 
    Also handles export / import / clear.
    ========================================================== */
 
 import { Storage } from "./storage.js";
-import {
-  getTodayDayNumber,
-  getDayLabel,
-  getDayName,
-  groupDailyAttemptsByChapterAndDay
-} from "./daily-planner.js";
 
 const PASSING_THRESHOLD = 85;
+const SESSIONS_REQUIRED = 5;
 
 /* ==========================================================
    Formatting helpers
@@ -54,6 +55,8 @@ function typeLabel(a) {
   if (a.type === "final") return "🎯 Final Exam";
   if (a.type === "chapter") return "📝 " + (a.chapterName || "Chapter Quiz");
   if (a.type === "mini") return "🤔 " + (a.chapterName || "Quick Check");
+  if (a.type === "homework") return "📝 " + (a.skillLabel || a.chapterName || "Homework");
+  // legacy type from previous version
   if (a.type === "daily-homework") {
     const dayLabel = a.dayNumber === 6 || a.dayNumber === 7 ? "Weekend Review" : `Day ${a.dayNumber}`;
     return `📅 ${a.chapterName || "Daily"} — ${dayLabel}`;
@@ -61,22 +64,31 @@ function typeLabel(a) {
   return a.type;
 }
 
+function starsInline(n) {
+  let html = '<span class="stars">';
+  for (let i = 0; i < SESSIONS_REQUIRED; i++) {
+    html += i < n
+      ? '<span class="star filled">★</span>'
+      : '<span class="star empty">★</span>';
+  }
+  html += '</span>';
+  return html;
+}
+
 /* ==========================================================
    Main render
    ========================================================== */
 
-export async function renderParentDashboard(mainEl, subtitleEl, subjects) {
-  subtitleEl.textContent = "Parent Dashboard — all quiz and homework history on this device";
-
+export async function renderParentDashboard(mainEl, subjects) {
   const attempts = await Storage.getAllAttempts();
 
-  // ---- Header card with actions ----
+  // Header card with actions
   const headerCard = document.createElement("div");
   headerCard.className = "card";
   headerCard.style.borderLeftColor = "var(--primary-purple)";
   headerCard.innerHTML = `
     <h2>📊 Parent Dashboard</h2>
-    <p>All quiz and daily homework attempts are saved on this device automatically. Export regularly to back up.</p>
+    <p>All homework, quiz, and exam attempts are saved on this device automatically. Export regularly to back up.</p>
     <div class="btn-row">
       <button class="btn-primary" id="btnExport">📥 Export Data (JSON)</button>
       <button class="btn-secondary" id="btnImport">📤 Import Data</button>
@@ -87,7 +99,7 @@ export async function renderParentDashboard(mainEl, subtitleEl, subjects) {
   mainEl.innerHTML = "";
   mainEl.appendChild(headerCard);
 
-  wireDashboardActions(headerCard, mainEl, subtitleEl, subjects);
+  wireDashboardActions(headerCard, mainEl, subjects);
 
   if (attempts.length === 0) {
     const empty = document.createElement("div");
@@ -99,27 +111,30 @@ export async function renderParentDashboard(mainEl, subtitleEl, subjects) {
     return;
   }
 
-  // ---- Overall stats ----
+  // 1. Overall stats
   renderOverallStats(mainEl, attempts);
 
-  // ---- Daily Homework section (Math only for now) ----
-  await renderDailyHomeworkSection(mainEl, subjects);
+  // 2. Skill mastery by subject
+  await renderSkillMastery(mainEl, subjects);
 
-  // ---- Per-chapter performance (from quizzes) ----
+  // 3. Homework history
+  await renderHomeworkHistory(mainEl, subjects, attempts);
+
+  // 4. Quiz performance by chapter
   renderChapterPerformance(mainEl, attempts, subjects);
 
-  // ---- Recent attempts ----
+  // 5. Recent attempts
   renderRecentAttempts(mainEl, attempts);
 
-  // ---- Most missed questions ----
+  // 6. Most-missed questions
   renderMostMissed(mainEl, attempts);
 }
 
 /* ==========================================================
-   Wire dashboard action buttons (export / import / clear)
+   Action buttons
    ========================================================== */
 
-function wireDashboardActions(headerCard, mainEl, subtitleEl, subjects) {
+function wireDashboardActions(headerCard, mainEl, subjects) {
   headerCard.querySelector("#btnExport").addEventListener("click", async () => {
     const json = await Storage.exportJSON();
     const blob = new Blob([json], { type: "application/json" });
@@ -127,7 +142,7 @@ function wireDashboardActions(headerCard, mainEl, subtitleEl, subjects) {
     const a = document.createElement("a");
     const dateStr = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `science-explorer-${dateStr}.json`;
+    a.download = `explorer-data-${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });
@@ -144,7 +159,7 @@ function wireDashboardActions(headerCard, mainEl, subtitleEl, subjects) {
       try {
         const data = JSON.parse(e.target.result);
         if (!data.attempts || !Array.isArray(data.attempts)) {
-          alert("That file doesn't look like a Science Explorer export.");
+          alert("That file doesn't look like an Explorer export.");
           return;
         }
         const merge = confirm(
@@ -154,7 +169,7 @@ function wireDashboardActions(headerCard, mainEl, subtitleEl, subjects) {
         );
         await Storage.importJSON(e.target.result, merge ? "merge" : "replace");
         alert("Import complete!");
-        renderParentDashboard(mainEl, subtitleEl, subjects);
+        renderParentDashboard(mainEl, subjects);
       } catch (err) {
         alert("Could not read that file: " + err.message);
       }
@@ -168,14 +183,14 @@ function wireDashboardActions(headerCard, mainEl, subtitleEl, subjects) {
       if (confirm("Really delete everything? This can't be undone.")) {
         await Storage.clearAllAttempts();
         alert("All data cleared.");
-        renderParentDashboard(mainEl, subtitleEl, subjects);
+        renderParentDashboard(mainEl, subjects);
       }
     }
   });
 }
 
 /* ==========================================================
-   Overall stats
+   1. Overall stats
    ========================================================== */
 
 function renderOverallStats(mainEl, attempts) {
@@ -221,166 +236,219 @@ function renderOverallStats(mainEl, attempts) {
 }
 
 /* ==========================================================
-   Daily Homework section
+   2. Skill mastery by subject
    ========================================================== */
 
-async function renderDailyHomeworkSection(mainEl, subjects) {
-  // Only Math has daily homework
-  const mathSubject = subjects && subjects.math;
-  if (!mathSubject || !mathSubject.chapters || mathSubject.chapters.length === 0) return;
-
-  const chaptersWithDH = mathSubject.chapters.filter(ch => ch.dailyHomework);
-  if (chaptersWithDH.length === 0) return;
-
-  const grouped = await groupDailyAttemptsByChapterAndDay("math");
-
+async function renderSkillMastery(mainEl, subjects) {
   const card = document.createElement("div");
   card.className = "card";
   card.style.borderLeftColor = "var(--primary-blue)";
 
-  let html = `<h3>📅 Daily Homework Progress</h3>
-    <p style="color:#666; font-size:0.95em;">Each day's sheet is passed at 85% or higher. Tap any day to see the full answer key.</p>`;
+  let html = `<h3>🎯 Skill Mastery by Subject</h3>
+    <p style="color:#666; font-size:0.95em;">
+      Homework is organized into skills. Each skill needs 5 passing sessions (85%+).
+      The star rating shows progress on the current skill.
+    </p>`;
 
-  chaptersWithDH.forEach(ch => {
-    const chapterAttempts = grouped[ch.id] || {};
-    html += `<div style="margin: 20px 0;">
-      <div style="font-weight: bold; font-size: 1.05em; color: var(--primary-purple); margin-bottom: 10px;">
-        ${ch.name}
-      </div>
-      <div class="dh-day-boxes">`;
+  for (const subj of Object.values(subjects || {})) {
+    if (!subj.chapters || subj.chapters.length === 0) continue;
 
-    for (let day = 1; day <= 7; day++) {
-      const dayAttempts = chapterAttempts[day] || [];
-      const label = getDayLabel(day);
-      const dayName = day >= 6 ? "Weekend Review" : `Day ${day}`;
+    const meta = await Storage.getMeta(`skillProgress_${subj.id}`);
+    const currentChapterId = meta ? meta.chapterId : null;
+    const currentSkillKey = meta ? meta.skillKey : null;
+    const currentPassed = meta ? meta.sessionsPassed || 0 : 0;
 
-      let classes = "dh-day-box";
-      let statusIcon = "";
-      let subtitle = "Not started";
+    html += `
+      <div style="margin-top: 20px;">
+        <div style="font-weight: bold; font-size: 1.05em; color: var(--primary-purple); margin-bottom: 12px;">
+          ${subj.icon} ${subj.name}
+        </div>
+    `;
 
-      if (dayAttempts.length > 0) {
-        const best = dayAttempts.reduce((max, a) => a.percent > max.percent ? a : max, dayAttempts[0]);
-        if (best.percent >= PASSING_THRESHOLD) {
-          classes += " dh-day-passed";
-          statusIcon = " ✓";
-          subtitle = `${best.score}/${best.total}`;
-        } else {
-          classes += " dh-day-failed";
-          subtitle = `${best.score}/${best.total}`;
-        }
-      }
-
-      html += `<button class="${classes}" data-chapter="${ch.id}" data-day="${day}">
-        <span class="dh-day-label">${label}${statusIcon}</span>
-        <span class="dh-day-name">${dayName}</span>
-        <span style="font-size: 0.75em; color: #666; display: block; margin-top: 2px;">${subtitle}</span>
-      </button>`;
+    if (!meta) {
+      html += `<div style="color:#888; font-style:italic; padding-left:12px;">
+        No homework started yet.
+      </div>`;
+      html += `</div>`;
+      continue;
     }
 
+    const currentChapter = subj.chapters.find(c => c.id === currentChapterId);
+    const currentSkill = currentChapter && currentChapter.skills
+      ? currentChapter.skills.find(s => s.key === currentSkillKey)
+      : null;
+
+    if (currentChapter && currentSkill) {
+      html += `
+        <div style="background:#FAFBFF; border-radius:12px; padding:16px; border-left:5px solid var(--primary-blue); margin-bottom:12px;">
+          <div style="font-weight: bold; color: var(--primary-blue);">
+            Current: ${currentSkill.label}
+          </div>
+          <div style="font-size: 0.9em; color: #666; margin-top: 4px;">
+            Chapter: ${currentChapter.name}
+          </div>
+          <div style="margin-top: 10px;">
+            ${starsInline(currentPassed)}
+            <span style="margin-left: 10px; font-weight: bold; color: var(--text-dark);">
+              ${currentPassed} / ${SESSIONS_REQUIRED} sessions passed
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Full chapter list with skill status
+    html += `<div style="padding-left: 12px;">`;
+    for (const chapter of subj.chapters) {
+      if (!chapter.skills || chapter.skills.length === 0) continue;
+
+      const isCurrentChapter = chapter.id === currentChapterId;
+      const chapterIdx = subj.chapters.indexOf(chapter);
+      const currentChapterIdx = currentChapterId
+        ? subj.chapters.findIndex(c => c.id === currentChapterId)
+        : -1;
+
+      html += `<div style="margin: 10px 0;">
+        <div style="font-weight: bold; color: #444; margin-bottom: 6px;">${chapter.name}</div>
+        <div style="padding-left: 12px;">`;
+
+      for (const skill of chapter.skills) {
+        let icon = "○";
+        let color = "#999";
+        let statusText = "Not started";
+
+        if (isCurrentChapter && skill.key === currentSkillKey) {
+          icon = "▶";
+          color = "var(--primary-blue)";
+          statusText = `${currentPassed}/5 passed`;
+        } else if (isCurrentChapter) {
+          const skillIdx = chapter.skills.findIndex(s => s.key === skill.key);
+          const currentSkillIdx = chapter.skills.findIndex(s => s.key === currentSkillKey);
+          if (skillIdx < currentSkillIdx) {
+            icon = "✓";
+            color = "#2ECC71";
+            statusText = "Mastered";
+          }
+        } else if (chapterIdx >= 0 && currentChapterIdx >= 0 && chapterIdx < currentChapterIdx) {
+          icon = "✓";
+          color = "#2ECC71";
+          statusText = "Mastered";
+        }
+
+        html += `
+          <div style="display:flex; align-items:center; gap:10px; padding: 4px 0; font-size: 0.95em;">
+            <span style="color:${color}; font-weight:bold; min-width:16px;">${icon}</span>
+            <span style="flex:1;">${skill.label}</span>
+            <span style="color:#888; font-size:0.85em;">${statusText}</span>
+          </div>
+        `;
+      }
+      html += `</div></div>`;
+    }
     html += `</div></div>`;
+  }
+
+  card.innerHTML = html;
+  mainEl.appendChild(card);
+}
+
+/* ==========================================================
+   3. Homework history with answer key
+   ========================================================== */
+
+async function renderHomeworkHistory(mainEl, subjects, attempts) {
+  const homeworkAttempts = attempts.filter(a =>
+    a.type === "homework" || a.type === "daily-homework"
+  );
+
+  if (homeworkAttempts.length === 0) return;
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.borderLeftColor = "var(--accent-orange)";
+
+  let html = `<h3>📝 Homework History</h3>
+    <p style="color:#666; font-size:0.95em;">Click any attempt to open the full answer key.</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Subject</th>
+          <th>Skill</th>
+          <th>Score</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  homeworkAttempts.slice(0, 30).forEach((a, idx) => {
+    const cls = scoreClass(a.percent);
+    const skillLabel = a.skillLabel || a.chapterName || "Homework";
+    const subjectName = a.subjectName || a.subject || "—";
+    html += `<tr class="hw-row" data-attempt-idx="${idx}" style="cursor:pointer;">
+      <td>${formatDate(a.timestamp)}</td>
+      <td>${subjectName}</td>
+      <td>${skillLabel}</td>
+      <td><span class="score-pill ${cls}">${a.score}/${a.total} (${a.percent}%)</span></td>
+      <td>${formatDuration(a.duration)}</td>
+    </tr>`;
   });
 
-  html += `<div id="dhAnswerKey" style="margin-top: 20px;"></div>`;
+  html += `</tbody></table>
+    <div id="hwAnswerKey" style="margin-top: 20px;"></div>`;
 
   card.innerHTML = html;
   mainEl.appendChild(card);
 
-  // Wire day-box clicks to show the answer key
-  card.querySelectorAll(".dh-day-box[data-chapter]").forEach(box => {
-    box.addEventListener("click", async () => {
-      card.querySelectorAll(".dh-day-box[data-chapter]").forEach(b => b.classList.remove("dh-day-active"));
-      box.classList.add("dh-day-active");
-
-      const chapterId = box.dataset.chapter;
-      const day = parseInt(box.dataset.day);
-      await renderDayAnswerKey(card.querySelector("#dhAnswerKey"), grouped, chapterId, day);
+  // Wire clicks
+  card.querySelectorAll(".hw-row").forEach(row => {
+    row.addEventListener("click", () => {
+      const idx = parseInt(row.dataset.attemptIdx);
+      const attempt = homeworkAttempts[idx];
+      renderHomeworkAnswerKey(card.querySelector("#hwAnswerKey"), attempt);
     });
   });
 }
 
-/* ==========================================================
-   Day-by-day answer key
-   ========================================================== */
-
-async function renderDayAnswerKey(container, grouped, chapterId, dayNumber) {
-  const dayAttempts = (grouped[chapterId] || {})[dayNumber] || [];
-
-  if (dayAttempts.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="padding: 20px;">
-      No attempts yet for this day.
-    </div>`;
-    return;
-  }
-
-  // Most recent attempt is the "latest"
-  const latest = dayAttempts[0];
-  const dayName = dayNumber >= 6 ? "Weekend Review" : `Day ${dayNumber}`;
-  const label = getDayName(dayNumber);
+function renderHomeworkAnswerKey(container, attempt) {
+  const dayLabel = attempt.skillLabel || attempt.chapterName || "Homework";
+  const subjectName = attempt.subjectName || attempt.subject || "";
 
   let html = `
     <div style="background: #FAFBFF; border-radius: 14px; padding: 20px; border: 2px solid #D6E4FF;">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
         <div>
           <div style="font-weight: bold; font-size: 1.1em; color: var(--primary-purple);">
-            ${latest.chapterName} — ${dayName}
+            ${subjectName} — ${dayLabel}
           </div>
           <div style="font-size: 0.9em; color: #666;">
-            ${label} • Latest attempt: ${formatDate(latest.timestamp)} • ${dayAttempts.length} attempt${dayAttempts.length > 1 ? "s" : ""}
+            ${formatDate(attempt.timestamp)} • Session ${attempt.sessionNumber || "—"} of 5
           </div>
         </div>
-        <div class="score-pill ${scoreClass(latest.percent)}" style="font-size: 1.1em; padding: 8px 16px;">
-          ${latest.score}/${latest.total} (${latest.percent}%)
+        <div class="score-pill ${scoreClass(attempt.percent)}" style="font-size: 1.1em; padding: 8px 16px;">
+          ${attempt.score}/${attempt.total} (${attempt.percent}%)
         </div>
       </div>
   `;
 
-  // Latest attempt answers (if available)
-  if (latest.questions && latest.questions.length > 0) {
-    html += `<div style="margin-top: 16px;">
-      <div style="font-weight: bold; color: var(--primary-blue); margin-bottom: 10px;">
-        Latest Attempt — Answer Key
-      </div>
-      <ol style="list-style: decimal; padding-left: 24px;">`;
-
-    latest.questions.forEach(q => {
+  if (attempt.questions && attempt.questions.length > 0) {
+    html += `<ol style="list-style: decimal; padding-left: 24px;">`;
+    attempt.questions.forEach(q => {
       const clean = (s) => (s || "").toString().trim().toLowerCase().replace(/,/g, "").replace(/\s+/g, "");
       const isCorrect = clean(q.userAnswer) === clean(q.correctAnswer);
       html += `<li style="padding: 8px 0; border-bottom: 1px solid #EEE;">
         <div style="color: #333;">${q.question}</div>
         <div style="font-size: 0.95em; margin-top: 4px;">
           <span style="color: ${isCorrect ? "#28A745" : "#DC3545"};">
-            ${isCorrect ? "✓" : "✗"} Your answer: ${q.userAnswer || "(blank)"}
+            ${isCorrect ? "✓" : "✗"} Student: ${q.userAnswer || "(blank)"}
           </span>
           ${!isCorrect ? `<span style="color: #28A745; margin-left: 12px;">Correct: ${q.correctAnswer}</span>` : ""}
         </div>
       </li>`;
     });
-
-    html += `</ol></div>`;
+    html += `</ol>`;
   } else {
-    // Older attempts didn't save the questions
-    html += `<div style="font-size: 0.9em; color: #666; font-style: italic; margin-top: 12px;">
-      Detailed answers aren't available for this attempt (older format). New attempts will include them.
-    </div>`;
-  }
-
-  // Prior attempts summary
-  if (dayAttempts.length > 1) {
-    html += `<div style="margin-top: 20px; padding-top: 16px; border-top: 2px dashed #DDD;">
-      <div style="font-weight: bold; color: var(--primary-purple); margin-bottom: 10px;">
-        Previous Attempts
-      </div>
-      <table class="data-table">
-        <thead><tr><th>When</th><th>Score</th><th>Time</th></tr></thead>
-        <tbody>`;
-    dayAttempts.slice(1).forEach(a => {
-      html += `<tr>
-        <td>${formatDate(a.timestamp)}</td>
-        <td><span class="score-pill ${scoreClass(a.percent)}">${a.score}/${a.total} (${a.percent}%)</span></td>
-        <td>${formatDuration(a.duration)}</td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
+    html += `<div style="color:#666; font-style:italic;">Detailed answers not available for this attempt.</div>`;
   }
 
   html += `</div>`;
@@ -389,7 +457,7 @@ async function renderDayAnswerKey(container, grouped, chapterId, dayNumber) {
 }
 
 /* ==========================================================
-   Per-chapter performance (quizzes)
+   4. Quiz performance by chapter
    ========================================================== */
 
 function renderChapterPerformance(mainEl, attempts, subjects) {
@@ -401,10 +469,11 @@ function renderChapterPerformance(mainEl, attempts, subjects) {
   Object.values(subjects || {}).forEach(subj => {
     if (!subj.chapters || subj.chapters.length === 0) return;
 
-    const hasAnyAttempts = subj.chapters.some(ch =>
-      attempts.some(a => a.subject === subj.id && a.chapter === ch.id && a.type !== "daily-homework")
+    const hasAny = subj.chapters.some(ch =>
+      attempts.some(a => a.subject === subj.id && a.chapter === ch.id &&
+        (a.type === "chapter" || a.type === "mini"))
     );
-    if (!hasAnyAttempts) return;
+    if (!hasAny) return;
 
     html += `<div style="margin-top: 20px;">
       <div style="font-weight: bold; font-size: 1.05em; color: var(--primary-purple); margin-bottom: 12px;">
@@ -413,13 +482,14 @@ function renderChapterPerformance(mainEl, attempts, subjects) {
 
     subj.chapters.forEach(ch => {
       const chAttempts = attempts.filter(a =>
-        a.subject === subj.id && a.chapter === ch.id && a.type !== "daily-homework"
+        a.subject === subj.id && a.chapter === ch.id &&
+        (a.type === "chapter" || a.type === "mini")
       );
 
       if (chAttempts.length === 0) {
         html += `<div class="topic-row">
           <div class="topic-name">${ch.name}
-            <span style="color:#999; font-weight:normal; font-size:0.85em;">— no quiz attempts</span>
+            <span style="color:#999; font-weight:normal; font-size:0.85em;">— no attempts</span>
           </div>
           <div class="topic-bar"><div class="topic-bar-fill" style="width:0%; background:#CCC;"></div></div>
         </div>`;
@@ -431,7 +501,7 @@ function renderChapterPerformance(mainEl, attempts, subjects) {
       html += `<div class="topic-row">
         <div class="topic-name">${ch.name}
           <span style="font-weight:normal; color:#666; font-size:0.9em;">
-            — avg ${avg}% over ${chAttempts.length} attempt${chAttempts.length > 1 ? "s" : ""}
+            — avg ${avg}% (${chAttempts.length} attempts)
           </span>
         </div>
         <div class="topic-bar">
@@ -452,7 +522,7 @@ function renderChapterPerformance(mainEl, attempts, subjects) {
 }
 
 /* ==========================================================
-   Recent attempts
+   5. Recent attempts
    ========================================================== */
 
 function renderRecentAttempts(mainEl, attempts) {
@@ -460,17 +530,16 @@ function renderRecentAttempts(mainEl, attempts) {
   card.className = "card";
 
   const recent = attempts.slice(0, 25);
-  let html = `<h3>🕐 Recent Attempts (last 25)</h3>
+  let html = `<h3>🕐 Recent Activity (last 25)</h3>
     <table class="data-table">
       <thead><tr><th>When</th><th>Type</th><th>Score</th><th>Time</th></tr></thead>
       <tbody>`;
 
   recent.forEach(a => {
     const cls = scoreClass(a.percent);
-    const typeStr = typeLabel(a);
     html += `<tr>
       <td>${formatDate(a.timestamp)}</td>
-      <td>${typeStr}</td>
+      <td>${typeLabel(a)}</td>
       <td><span class="score-pill ${cls}">${a.score}/${a.total} (${a.percent}%)</span></td>
       <td>${formatDuration(a.duration)}</td>
     </tr>`;
@@ -482,7 +551,7 @@ function renderRecentAttempts(mainEl, attempts) {
 }
 
 /* ==========================================================
-   Most-missed questions
+   6. Most-missed questions
    ========================================================== */
 
 function renderMostMissed(mainEl, attempts) {

@@ -316,68 +316,38 @@ export const chapter = {
   /* ==========================================================
      DAILY HOMEWORK
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Identify the place of a digit in a decimal",
+  skills: [
+    {
+      key: "identify-place",
+      label: "Identify digit place in a decimal",
       generator: "identifyDecimalPlace",
       args: {},
-      count: 15,
-      remember: "Starting from the decimal point and moving right: tenths, hundredths, thousandths. Count carefully!",
-      workedExample: "In 3.457:\n• First digit after decimal → tenths (4)\n• Second digit → hundredths (5)\n• Third digit → thousandths (7)"
+      remember: "Starting from the decimal point and moving right: tenths, hundredths, thousandths.",
+      workedExample: "In 3.457:\n• Tenths digit → 4\n• Hundredths digit → 5\n• Thousandths digit → 7"
     },
-
-    day2: {
-      skill: "Expanded form of decimals",
+    {
+      key: "expanded-decimal",
+      label: "Write decimals in expanded form",
       generator: "expandedFormDecimal",
       args: {},
-      count: 15,
-      remember: "Multiply each digit by its place value. Use fractions for the decimal places: 1/10, 1/100, 1/1,000.",
+      remember: "Multiply each digit by its place value. Use fractions for decimal places: 1/10, 1/100, 1/1,000.",
       workedExample: "4.68 = (4 × 1) + (6 × 1/10) + (8 × 1/100)"
     },
-
-    day3: {
-      skill: "Word form of decimals",
+    {
+      key: "word-decimal",
+      label: "Write decimals in word form",
       generator: "numberNameDecimal",
       args: {},
-      count: 15,
-      remember: "Say the whole number part, then 'and' for the decimal point, then the fraction name. The last digit's place tells you the denominator.",
+      remember: "Say the whole number part, then 'and' for the decimal point, then the fraction name.",
       workedExample: "4.68 = 'four and sixty-eight hundredths'\n0.245 = 'two hundred forty-five thousandths'"
     },
-
-    day4: {
-      skill: "Mixed place value skills",
-      mix: [
-        { generator: "identifyDecimalPlace", args: {}, weight: 1, skill: "Place ID" },
-        { generator: "expandedFormDecimal", args: {}, weight: 1, skill: "Expanded form" },
-        { generator: "numberNameDecimal", args: {}, weight: 1, skill: "Word form" }
-      ],
-      count: 15,
-      remember: "Read each question carefully. It might ask about place, expanded form, or word form.",
-      workedExample: "3.457: 5 is in hundredths. Expanded: (3×1)+(4×1/10)+(5×1/100)+(7×1/1,000). Word: three and four hundred fifty-seven thousandths."
-    },
-
-    day5: {
-      skill: "Challenge — decimals with thousandths",
-      mix: [
-        { generator: "identifyDecimalPlace", args: {}, weight: 1, skill: "Place ID" },
-        { generator: "expandedFormDecimal", args: { includeThousandths: true }, weight: 1, skill: "Expanded (thousandths)" },
-        { generator: "numberNameDecimal", args: { includeThousandths: true }, weight: 1, skill: "Word (thousandths)" }
-      ],
-      count: 15,
-      remember: "Same skills, but now including the thousandths place. The pattern continues: thousandths = 1/1,000.",
-      workedExample: "5.472 = five and four hundred seventy-two thousandths"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
+    {
+      key: "thousandths-decimal",
+      label: "Decimal place value through thousandths",
+      generator: "identifyDecimalPlace",
+      args: {},
+      remember: "Same skills, now extending to the thousandths place (three digits after the decimal).",
+      workedExample: "In 5.472:\n• Tenths: 4\n• Hundredths: 7\n• Thousandths: 2"
     }
-  }
+  ]
 };

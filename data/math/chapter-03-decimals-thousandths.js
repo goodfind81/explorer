@@ -280,69 +280,30 @@ export const chapter = {
   /* ==========================================================
      DAILY HOMEWORK
      ========================================================== */
-  dailyHomework: {
-    day1: {
-      skill: "Write decimals as fractions",
+  skills: [
+    {
+      key: "decimal-to-fraction",
+      label: "Write decimals as fractions",
       generator: "fractionDecimal",
       args: { direction: "toFraction" },
-      count: 15,
-      remember: "Count the decimal places. 1 place → /10, 2 places → /100, 3 places → /1,000. The digits after the decimal become the numerator.",
+      remember: "Count the decimal places. 1 place → /10, 2 → /100, 3 → /1,000. The digits after the decimal become the numerator.",
       workedExample: "0.005 = 5/1,000\n0.08 = 8/100\n0.5 = 5/10"
     },
-
-    day2: {
-      skill: "Write fractions as decimals",
+    {
+      key: "fraction-to-decimal",
+      label: "Write fractions as decimals",
       generator: "fractionDecimal",
       args: { direction: "toDecimal" },
-      count: 15,
       remember: "Look at the denominator. 10 → 1 decimal place, 100 → 2 places, 1,000 → 3 places. Pad with leading zeros if needed.",
       workedExample: "5/1,000 = 0.005 (pad with zeros)\n34/100 = 0.34\n7/10 = 0.7"
     },
-
-    day3: {
-      skill: "Identify the value of a digit in a decimal",
+    {
+      key: "identify-decimal-place",
+      label: "Identify digit place in a decimal",
       generator: "identifyDecimalPlace",
       args: {},
-      count: 15,
-      remember: "The three places after the decimal are: tenths, hundredths, thousandths. Say them in order.",
+      remember: "The three places after the decimal are: tenths, hundredths, thousandths.",
       workedExample: "In 3.457:\n• 4 is in tenths\n• 5 is in hundredths\n• 7 is in thousandths"
-    },
-
-    day4: {
-      skill: "Mixed: fractions ↔ decimals and place ID",
-      mix: [
-        { generator: "fractionDecimal", args: { direction: "toFraction" }, weight: 1, skill: "Decimal → fraction" },
-        { generator: "fractionDecimal", args: { direction: "toDecimal" }, weight: 1, skill: "Fraction → decimal" },
-        { generator: "identifyDecimalPlace", args: {}, weight: 1, skill: "Place ID" }
-      ],
-      count: 15,
-      remember: "Mixed day. Read each problem carefully — is it asking for a fraction, a decimal, or a place?",
-      workedExample: "0.05 = 5/100\n5/100 = 0.05\nIn 0.05, 5 is in the hundredths place"
-    },
-
-    day5: {
-      skill: "Challenge — thousandths and place relationships",
-      mix: [
-        { generator: "fractionDecimal", args: { direction: "toFraction" }, weight: 1, skill: "Decimal → fraction" },
-        { generator: "fractionDecimal", args: { direction: "toDecimal" }, weight: 1, skill: "Fraction → decimal" },
-        { generator: "identifyDecimalPlace", args: {}, weight: 1, skill: "Place ID" },
-        { generator: "compareDecimals", args: {}, weight: 1, skill: "Compare" }
-      ],
-      count: 15,
-      remember: "Challenge day! Mix of all skills from the week. Take your time with each problem.",
-      workedExample: "0.555 in expanded form:\n(5 × 1/10) + (5 × 1/100) + (5 × 1/1,000)"
-    },
-
-    day6: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
-    },
-
-    day7: {
-      type: "weekendReview",
-      latestWeight: 0.6,
-      count: 15
     }
-  }
+  ]
 };
