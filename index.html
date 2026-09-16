@@ -9,9 +9,16 @@
 <body>
 
 <!-- ==========================================================
-     HOME PAGE — subject picker + stars
+     LOGIN VIEW — shown when there's no session
      ========================================================== -->
-<div id="homeView" class="view">
+<div id="loginView" class="view" style="display:none;">
+  <!-- Login form injected by auth.js -->
+</div>
+
+<!-- ==========================================================
+     HOME VIEW
+     ========================================================== -->
+<div id="homeView" class="view" style="display:none;">
 
   <header class="home-header">
     <h1>🎒 4th Grade Explorer</h1>
@@ -23,13 +30,14 @@
   </main>
 
   <footer class="app-footer">
-    <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+    <div id="roleIndicator" class="role-indicator-wrap"></div>
+    <button class="nav-btn parent parent-only" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
   </footer>
 
 </div>
 
 <!-- ==========================================================
-     SUBJECT VIEW — chapter dropdown + sections + homework button
+     SUBJECT VIEW
      ========================================================== -->
 <div id="subjectView" class="view" style="display:none;">
 
@@ -49,21 +57,22 @@
   </nav>
 
   <nav class="section-progress" id="sectionProgress">
-    <!-- Section tabs injected by chapter-view.js -->
+    <!-- Injected by chapter-view.js -->
   </nav>
 
   <main id="sectionContent">
-    <!-- Current section content injected by chapter-view.js -->
+    <!-- Injected by chapter-view.js -->
   </main>
 
   <footer class="app-footer">
-    <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+    <div id="roleIndicator" class="role-indicator-wrap"></div>
+    <button class="nav-btn parent parent-only" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
   </footer>
 
 </div>
 
 <!-- ==========================================================
-     HOMEWORK VIEW — today's sheet
+     HOMEWORK VIEW
      ========================================================== -->
 <div id="homeworkView" class="view" style="display:none;">
 
@@ -73,17 +82,18 @@
   </header>
 
   <main id="homeworkContent">
-    <!-- Homework sheet injected by homework-view.js -->
+    <!-- Injected by homework-view.js -->
   </main>
 
   <footer class="app-footer">
-    <button class="nav-btn parent" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+    <div id="roleIndicator" class="role-indicator-wrap"></div>
+    <button class="nav-btn parent parent-only" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
   </footer>
 
 </div>
 
 <!-- ==========================================================
-     PARENT DASHBOARD VIEW
+     PARENT VIEW
      ========================================================== -->
 <div id="parentView" class="view" style="display:none;">
 
@@ -93,7 +103,7 @@
   </header>
 
   <main id="parentContent">
-    <!-- Dashboard injected by parent-dashboard.js -->
+    <!-- Injected by parent-dashboard.js -->
   </main>
 
   <footer class="app-footer">
@@ -102,7 +112,6 @@
 
 </div>
 
-<!-- Core engine -->
 <script type="module" src="assets/app.js"></script>
 
 </body>

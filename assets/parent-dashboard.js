@@ -3,22 +3,21 @@
    Parent Dashboard, reorganized around skill mastery.
 
    Sections:
-     1. Overall stats (attempts, avg, time)
+     1. Overall stats
      2. Skill mastery by subject
-        - Which skill is current
-        - How many sessions passed (out of 5)
-        - Full skill history (mastered, in progress, not started)
-     3. Homework history per subject
-        - Every homework attempt with score, duration
-        - Click any attempt to see the full answer key
+     3. Homework history with answer key
      4. Quiz performance by chapter
-     5. Recent attempts (all types)
+     5. Recent attempts
      6. Most-missed questions
 
    Also handles export / import / clear.
+
+   Restricted to parent role. If a kid somehow gets here,
+   a lock message is shown instead.
    ========================================================== */
 
 import { Storage } from "./storage.js";
+import { getSession, isParent, renderRoleIndicator } from "./auth.js";
 
 const PASSING_THRESHOLD = 85;
 const SESSIONS_REQUIRED = 5;
@@ -28,6 +27,7 @@ const SESSIONS_REQUIRED = 5;
    ========================================================== */
 
 function formatDate(iso) {
+  if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleString("en-US", {
     month: "short",
@@ -56,7 +56,6 @@ function typeLabel(a) {
   if (a.type === "chapter") return "📝 " + (a.chapterName || "Chapter Quiz");
   if (a.type === "mini") return "🤔 " + (a.chapterName || "Quick Check");
   if (a.type === "homework") return "📝 " + (a.skillLabel || a.chapterName || "Homework");
-  // legacy type from previous version
   if (a.type === "daily-homework") {
     const dayLabel = a.dayNumber === 6 || a.dayNumber === 7 ? "Weekend Review" : `Day ${a.dayNumber}`;
     return `📅 ${a.chapterName || "Daily"} — ${dayLabel}`;
@@ -80,24 +79,63 @@ function starsInline(n) {
    ========================================================== */
 
 export async function renderParentDashboard(mainEl, subjects) {
-  const attempts = await Storage.getAllAttempts();
+  const session = getSession();
 
-  // Header card with actions
+  // Guard: only parents can see this view
+  if (!isParent(session)) {
+    mainEl.innerHTML = `
+      <div class="card">
+        <div class="empty-state">
+          <strong>🔒 Parent access only.</strong><br>
+          This view is available only when signed in with the parent code.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Show loading state (Supabase reads can take a moment)
+  mainEl.innerHTML = `<div class="loading-state">Loading dashboard…</div>`;
+
+  let attempts = [];
+  try {
+    attempts = await Storage.getAllAttempts();
+  } catch (err) {
+    console.error("Could not load attempts:", err);
+    mainEl.innerHTML = `
+      <div class="card">
+        <div class="empty-state">
+          Could not load attempts from Supabase.<br>
+          Check your internet connection and try again.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Header card with role indicator + actions
   const headerCard = document.createElement("div");
   headerCard.className = "card";
   headerCard.style.borderLeftColor = "var(--primary-purple)";
   headerCard.innerHTML = `
     <h2>📊 Parent Dashboard</h2>
-    <p>All homework, quiz, and exam attempts are saved on this device automatically. Export regularly to back up.</p>
+    <p>All homework, quiz, and exam attempts are saved to the cloud. Access from any device with your parent code.</p>
     <div class="btn-row">
       <button class="btn-primary" id="btnExport">📥 Export Data (JSON)</button>
       <button class="btn-secondary" id="btnImport">📤 Import Data</button>
       <input type="file" id="importFile" accept=".json" style="display:none;">
       <button class="btn-danger" id="btnClear">🗑️ Clear All Data</button>
     </div>
+    <div id="roleIndicatorWrap" style="margin-top:14px;"></div>
   `;
   mainEl.innerHTML = "";
   mainEl.appendChild(headerCard);
+
+  // Render role indicator + sign out
+  renderRoleIndicator(
+    headerCard.querySelector("#roleIndicatorWrap"),
+    session
+  );
 
   wireDashboardActions(headerCard, mainEl, subjects);
 
@@ -113,22 +151,11 @@ export async function renderParentDashboard(mainEl, subjects) {
     return;
   }
 
-  // 1. Overall stats
   renderOverallStats(mainEl, attempts);
-
-  // 2. Skill mastery by subject
   await renderSkillMastery(mainEl, subjects);
-
-  // 3. Homework history
   await renderHomeworkHistory(mainEl, subjects, attempts);
-
-  // 4. Quiz performance by chapter
   renderChapterPerformance(mainEl, attempts, subjects);
-
-  // 5. Recent attempts
   renderRecentAttempts(mainEl, attempts);
-
-  // 6. Most-missed questions
   renderMostMissed(mainEl, attempts);
 }
 
@@ -138,15 +165,19 @@ export async function renderParentDashboard(mainEl, subjects) {
 
 function wireDashboardActions(headerCard, mainEl, subjects) {
   headerCard.querySelector("#btnExport").addEventListener("click", async () => {
-    const json = await Storage.exportJSON();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const dateStr = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `explorer-data-${dateStr}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const json = await Storage.exportJSON();
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `explorer-data-${dateStr}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Export failed: " + err.message);
+    }
   });
 
   headerCard.querySelector("#btnImport").addEventListener("click", () => {
@@ -181,11 +212,15 @@ function wireDashboardActions(headerCard, mainEl, subjects) {
   });
 
   headerCard.querySelector("#btnClear").addEventListener("click", async () => {
-    if (confirm("This will permanently delete ALL history on this device. Are you sure?\n\n(Tip: Export first if you want a backup!)")) {
+    if (confirm("This will permanently delete ALL history. Are you sure?\n\n(Tip: Export first if you want a backup!)")) {
       if (confirm("Really delete everything? This can't be undone.")) {
-        await Storage.clearAllAttempts();
-        alert("All data cleared.");
-        renderParentDashboard(mainEl, subjects);
+        try {
+          await Storage.clearAllAttempts();
+          alert("All data cleared.");
+          renderParentDashboard(mainEl, subjects);
+        } catch (err) {
+          alert("Clear failed: " + err.message);
+        }
       }
     }
   });
@@ -255,7 +290,13 @@ async function renderSkillMastery(mainEl, subjects) {
   for (const subj of Object.values(subjects || {})) {
     if (!subj.chapters || subj.chapters.length === 0) continue;
 
-    const meta = await Storage.getMeta(`skillProgress_${subj.id}`);
+    let meta = null;
+    try {
+      meta = await Storage.getMeta(`skillProgress_${subj.id}`);
+    } catch (err) {
+      console.warn("Could not read meta for", subj.id, err);
+    }
+
     const currentChapterId = meta ? meta.chapterId : null;
     const currentSkillKey = meta ? meta.skillKey : null;
     const currentPassed = meta ? meta.sessionsPassed || 0 : 0;
@@ -299,7 +340,6 @@ async function renderSkillMastery(mainEl, subjects) {
       `;
     }
 
-    // Full chapter list with skill status
     html += `<div style="padding-left: 12px;">`;
     for (const chapter of subj.chapters) {
       if (!chapter.skills || chapter.skills.length === 0) continue;
@@ -361,7 +401,7 @@ async function renderSkillMastery(mainEl, subjects) {
 
   card.innerHTML = html;
   mainEl.appendChild(card);
-    // Wire up "Set as current" buttons
+
   // Wire up "Set as current" buttons
   card.querySelectorAll(".set-current-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -369,7 +409,6 @@ async function renderSkillMastery(mainEl, subjects) {
       const chapterId = btn.dataset.chapter;
       const skillKey = btn.dataset.skill;
 
-      // Look up subject from the outer scope
       const subject = subjects[subjectId];
       if (!subject) {
         alert("Could not find subject: " + subjectId);
@@ -447,7 +486,6 @@ async function renderHomeworkHistory(mainEl, subjects, attempts) {
   card.innerHTML = html;
   mainEl.appendChild(card);
 
-  // Wire clicks
   card.querySelectorAll(".hw-row").forEach(row => {
     row.addEventListener("click", () => {
       const idx = parseInt(row.dataset.attemptIdx);

@@ -6,19 +6,16 @@
      - When to advance to the next skill
      - When the skill is mastered
 
-   Data stored in IndexedDB meta table:
-     skillProgress_<subjectId> = {
-       chapterId: "chapter-06-round-decimals",
-       skillKey: "round-tenth",
-       sessionsPassed: 3,
-       sessionsAttempted: 4,
-       lastUpdated: "2025-..."
-     }
+   Backed by Supabase via the Storage layer. Uses the meta
+   key format `skillProgress_<subject>` for compatibility with
+   the existing Storage API.
 
-   A skill is "mastered" when sessionsPassed reaches 5.
-   Once mastered, the tracker advances to the next skill
-   in the chapter's skills array. If the chapter is finished,
-   it advances to the first skill of the next chapter.
+   The shape of what getMeta returns is unchanged from the
+   old IndexedDB version:
+     {
+       chapterId, skillKey,
+       sessionsPassed, sessionsAttempted, lastUpdated
+     }
    ========================================================== */
 
 import { Storage } from "./storage.js";
@@ -50,12 +47,12 @@ async function writeProgress(subjectId, progress) {
  *   {
  *     chapterId, chapterName,
  *     skillKey, skillLabel,
- *     skillIndex,               // 0-based index within chapter.skills
+ *     skillIndex,
  *     sessionsPassed,
  *     sessionsAttempted,
- *     mastered,                 // sessionsPassed >= 5
- *     chapterComplete,          // all skills in chapter mastered
- *     allComplete               // every chapter in subject mastered
+ *     mastered,
+ *     chapterComplete,
+ *     allComplete
  *   }
  * Or null if subject has no chapters.
  */
@@ -72,13 +69,12 @@ export async function getCurrentSkill(subjectId, chapters) {
       chapterId: chapters[0].id,
       skillKey: first.key,
       sessionsPassed: 0,
-      sessionsAttempted: 0,
-      lastUpdated: new Date().toISOString()
+      sessionsAttempted: 0
     };
     await writeProgress(subjectId, progress);
   }
 
-  // Resolve chapter + skill from progress
+  // Resolve chapter from progress
   const chapter = chapters.find(c => c.id === progress.chapterId);
   if (!chapter) {
     // Stale reference — reset
@@ -88,8 +84,7 @@ export async function getCurrentSkill(subjectId, chapters) {
       chapterId: chapters[0].id,
       skillKey: first.key,
       sessionsPassed: 0,
-      sessionsAttempted: 0,
-      lastUpdated: new Date().toISOString()
+      sessionsAttempted: 0
     };
     await writeProgress(subjectId, progress);
     return getCurrentSkill(subjectId, chapters);
@@ -102,7 +97,6 @@ export async function getCurrentSkill(subjectId, chapters) {
     progress.skillKey = first.key;
     progress.sessionsPassed = 0;
     progress.sessionsAttempted = 0;
-    progress.lastUpdated = new Date().toISOString();
     await writeProgress(subjectId, progress);
     return getCurrentSkill(subjectId, chapters);
   }
@@ -131,19 +125,12 @@ export async function getCurrentSkill(subjectId, chapters) {
  * Called after scoring a homework sheet.
  * If passed (>= 85%), increments sessionsPassed.
  * If sessionsPassed reaches 5, advances to the next skill.
- *
- * Returns:
- *   {
- *     passed,                 // did this attempt pass?
- *     advanced,               // did we move to a new skill?
- *     newSkill: { ... }       // if advanced, info about the new skill
- *   }
  */
 export async function recordHomeworkAttempt(subjectId, chapters, attempt) {
   const passed = attempt.percent >= PASSING_THRESHOLD;
   let progress = await readProgress(subjectId);
+
   if (!progress) {
-    // Shouldn't happen if getCurrentSkill was called first, but be safe
     await getCurrentSkill(subjectId, chapters);
     progress = await readProgress(subjectId);
   }
@@ -152,7 +139,6 @@ export async function recordHomeworkAttempt(subjectId, chapters, attempt) {
   if (passed) {
     progress.sessionsPassed = (progress.sessionsPassed || 0) + 1;
   }
-  progress.lastUpdated = new Date().toISOString();
 
   await writeProgress(subjectId, progress);
 
@@ -160,7 +146,6 @@ export async function recordHomeworkAttempt(subjectId, chapters, attempt) {
   let newSkill = null;
 
   if (progress.sessionsPassed >= SESSIONS_REQUIRED) {
-    // Advance to next skill
     const next = await advanceSkill(subjectId, chapters, progress);
     if (next) {
       advanced = true;
@@ -190,8 +175,7 @@ async function advanceSkill(subjectId, chapters, progress) {
       chapterId: chapter.id,
       skillKey: nextSkillInChapter.key,
       sessionsPassed: 0,
-      sessionsAttempted: 0,
-      lastUpdated: new Date().toISOString()
+      sessionsAttempted: 0
     };
     await writeProgress(subjectId, nextProgress);
     return {
@@ -212,8 +196,7 @@ async function advanceSkill(subjectId, chapters, progress) {
       chapterId: nextChapter.id,
       skillKey: firstSkill.key,
       sessionsPassed: 0,
-      sessionsAttempted: 0,
-      lastUpdated: new Date().toISOString()
+      sessionsAttempted: 0
     };
     await writeProgress(subjectId, nextProgress);
     return {
@@ -227,6 +210,80 @@ async function advanceSkill(subjectId, chapters, progress) {
 
   // Subject complete — no more skills
   return null;
+}
+
+/* ==========================================================
+   Public API — manual override
+   ========================================================== */
+
+/**
+ * Allows the parent to jump to any skill in any chapter.
+ * Resets sessions to 0/5 so the 5-session counter starts fresh.
+ */
+export async function setCurrentSkill(subjectId, chapterId, skillKey) {
+  const progress = {
+    chapterId,
+    skillKey,
+    sessionsPassed: 0,
+    sessionsAttempted: 0
+  };
+  await writeProgress(subjectId, progress);
+  return progress;
+}
+
+/* ==========================================================
+   Public API — get chapter skill status (for parent dashboard)
+   ========================================================== */
+
+/**
+ * Get the full skills array of a chapter with per-skill status.
+ * Returns an array of:
+ *   {
+ *     key, label,
+ *     sessionsPassed,
+ *     mastered,
+ *     current,
+ *     attempted
+ *   }
+ */
+export async function getChapterSkillStatus(subjectId, chapter) {
+  if (!chapter || !chapter.skills) return [];
+
+  const progress = await readProgress(subjectId);
+  const isThisChapter = progress && progress.chapterId === chapter.id;
+  const currentKey = isThisChapter ? progress.skillKey : null;
+  const currentIdx = currentKey
+    ? chapter.skills.findIndex(s => s.key === currentKey)
+    : -1;
+
+  return chapter.skills.map((skill, idx) => {
+    let sessionsPassed = 0;
+    let mastered = false;
+    let current = false;
+    let attempted = false;
+
+    if (isThisChapter) {
+      if (idx < currentIdx) {
+        sessionsPassed = SESSIONS_REQUIRED;
+        mastered = true;
+        attempted = true;
+      } else if (idx === currentIdx) {
+        sessionsPassed = progress.sessionsPassed || 0;
+        mastered = sessionsPassed >= SESSIONS_REQUIRED;
+        current = true;
+        attempted = (progress.sessionsAttempted || 0) > 0;
+      }
+    }
+
+    return {
+      key: skill.key,
+      label: skill.label,
+      sessionsPassed,
+      mastered,
+      current,
+      attempted
+    };
+  });
 }
 
 /* ==========================================================
@@ -254,112 +311,7 @@ export async function resetProgress(subjectId, chapters) {
     chapterId: chapters[0].id,
     skillKey: first.key,
     sessionsPassed: 0,
-    sessionsAttempted: 0,
-    lastUpdated: new Date().toISOString()
-  };
-  await writeProgress(subjectId, progress);
-  return progress;
-}
-
-/* ==========================================================
-   Public API — get skill progress for a specific chapter
-   (used by parent dashboard and chapter view)
-   ========================================================== */
-
-/**
- * Get the full skills array of a chapter with per-skill status.
- * Returns an array of:
- *   {
- *     key, label,
- *     sessionsPassed,       // 0..5
- *     mastered,             // true if passed 5 times
- *     current,              // true if this is the active skill
- *     attempted             // true if any attempt exists
- *   }
- * The current skill state is derived from meta. Other skills
- * in the chapter are assumed mastered if they come before
- * the current skill (because the tracker only moves forward),
- * and not started if they come after.
- */
-export async function getChapterSkillStatus(subjectId, chapter) {
-  if (!chapter || !chapter.skills) return [];
-
-  const progress = await readProgress(subjectId);
-  const isThisChapter = progress && progress.chapterId === chapter.id;
-  const currentKey = isThisChapter ? progress.skillKey : null;
-  const currentIdx = currentKey
-    ? chapter.skills.findIndex(s => s.key === currentKey)
-    : -1;
-
-  // Is the whole chapter behind us? (i.e., we've moved past it)
-  const chapterIdxInSubject = chapter.__subjectIndex;
-  const currentChapterIdx = progress
-    ? progress.chapterId // compare by id
-    : null;
-
-  return chapter.skills.map((skill, idx) => {
-    let sessionsPassed = 0;
-    let mastered = false;
-    let current = false;
-    let attempted = false;
-
-    if (isThisChapter) {
-      if (idx < currentIdx) {
-        // Previous skills in this chapter are mastered
-        sessionsPassed = SESSIONS_REQUIRED;
-        mastered = true;
-        attempted = true;
-      } else if (idx === currentIdx) {
-        sessionsPassed = progress.sessionsPassed || 0;
-        mastered = sessionsPassed >= SESSIONS_REQUIRED;
-        current = true;
-        attempted = (progress.sessionsAttempted || 0) > 0;
-      } else {
-        // Future skills in this chapter — not started
-        sessionsPassed = 0;
-      }
-    } else if (progress && isChapterBeforeInSubject(chapter, progress, chapterIdxInSubject)) {
-      // Chapter is entirely before the current chapter — all mastered
-      sessionsPassed = SESSIONS_REQUIRED;
-      mastered = true;
-      attempted = true;
-    } else {
-      // Chapter is after the current chapter — nothing started
-      sessionsPassed = 0;
-    }
-
-    return {
-      key: skill.key,
-      label: skill.label,
-      sessionsPassed,
-      mastered,
-      current,
-      attempted
-    };
-  });
-}
-
-/**
- * Dummy helper — we'll simplify this in a later pass.
- * For now, only treats skills within the current chapter specially.
- */
-function isChapterBeforeInSubject() {
-  return false;
-}
-
-/* ==========================================================
-   Public API — manual override
-   Allows the parent to jump to any skill in any chapter.
-   Resets sessions to 0/5 so the 5-session counter starts fresh.
-   ========================================================== */
-
-export async function setCurrentSkill(subjectId, chapterId, skillKey) {
-  const progress = {
-    chapterId,
-    skillKey,
-    sessionsPassed: 0,
-    sessionsAttempted: 0,
-    lastUpdated: new Date().toISOString()
+    sessionsAttempted: 0
   };
   await writeProgress(subjectId, progress);
   return progress;

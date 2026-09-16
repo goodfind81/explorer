@@ -3,70 +3,20 @@
    Renders the home page: one card per subject with stars,
    current skill, and the last 5 homework scores.
 
-   Reads from Storage to figure out:
+   Reads from Storage (Supabase) to figure out:
      - Which skill is currently active in each subject
      - How many sessions passed on that skill (out of 5)
      - The last 5 homework attempts for each subject
+
+   No changes in shape from the previous version — the
+   Storage API is the same, it just hits Supabase now.
    ========================================================== */
 
 import { Storage } from "./storage.js";
-
-/* ==========================================================
-   Skill progress helpers
-   ========================================================== */
+import { getCurrentSkill } from "./skill-tracker.js";
 
 const SESSIONS_REQUIRED = 5;
 const PASSING_THRESHOLD = 85;
-
-/**
- * For a subject, get the current skill and progress.
- * Returns:
- *   {
- *     chapterId, chapterName, skillKey, skillLabel,
- *     sessionsPassed, sessionsAttempted, mastered
- *   }
- */
-async function getCurrentSkill(subjectId, chapters) {
-  // Read progress meta saved by skill-tracker
-  const key = `skillProgress_${subjectId}`;
-  const saved = await Storage.getMeta(key);
-
-  if (saved) {
-    const chapter = chapters.find(c => c.id === saved.chapterId);
-    if (chapter) {
-      const skillMeta = getSkillMeta(chapter, saved.skillKey);
-      return {
-        chapterId: saved.chapterId,
-        chapterName: chapter.name,
-        skillKey: saved.skillKey,
-        skillLabel: skillMeta ? skillMeta.label : saved.skillKey,
-        sessionsPassed: saved.sessionsPassed || 0,
-        sessionsAttempted: saved.sessionsAttempted || 0,
-        mastered: (saved.sessionsPassed || 0) >= SESSIONS_REQUIRED
-      };
-    }
-  }
-
-  // No saved progress: default to first chapter, first skill
-  if (chapters.length === 0) return null;
-  const firstChapter = chapters[0];
-  const firstSkill = firstChapter.skills && firstChapter.skills[0];
-  if (!firstSkill) return null;
-  return {
-    chapterId: firstChapter.id,
-    chapterName: firstChapter.name,
-    skillKey: firstSkill.key,
-    skillLabel: firstSkill.label,
-    sessionsPassed: 0,
-    sessionsAttempted: 0,
-    mastered: false
-  };
-}
-
-function getSkillMeta(chapter, skillKey) {
-  if (!chapter.skills) return null;
-  return chapter.skills.find(s => s.key === skillKey) || null;
-}
 
 /* ==========================================================
    Stars rendering
@@ -84,10 +34,6 @@ function starsHtml(sessionsPassed) {
   html += '</span>';
   return html;
 }
-
-/* ==========================================================
-   Recent scores rendering
-   ========================================================== */
 
 function recentScoresHtml(scores) {
   if (scores.length === 0) {
@@ -109,8 +55,7 @@ async function getLastFiveHomeworkScores(subjectId) {
   const all = await Storage.getAllAttempts();
   const filtered = all
     .filter(a => a.subject === subjectId && a.type === "homework")
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, 5);
+    .slice(0, 5); // already sorted newest first by Storage
   return filtered.map(a => a.percent);
 }
 
@@ -124,21 +69,34 @@ export async function renderHomePage(container, subjects) {
     return;
   }
 
-  // Build cards in a fixed order: Math first, then Science
-  // (or whatever exists)
+  // Fixed order: Math first, then Science
   const order = ["math", "science"];
   const subjectsToShow = [];
 
   order.forEach(id => {
     if (subjects[id]) subjectsToShow.push(subjects[id]);
   });
-  // Add any other subjects not in the order list
   Object.values(subjects).forEach(s => {
     if (!order.includes(s.id)) subjectsToShow.push(s);
   });
 
-  const cardsHtml = await Promise.all(subjectsToShow.map(buildSubjectCard));
-  container.innerHTML = `<div class="subject-cards">${cardsHtml.join("")}</div>`;
+  // Show a loading state while we hit Supabase
+  container.innerHTML = `<div class="loading-state">Loading your progress…</div>`;
+
+  // Fetch data for each subject in parallel
+  try {
+    const cardHtmls = await Promise.all(
+      subjectsToShow.map(subj => buildSubjectCard(subj))
+    );
+    container.innerHTML = `<div class="subject-cards">${cardHtmls.join("")}</div>`;
+  } catch (err) {
+    console.error("Could not render home page:", err);
+    container.innerHTML = `<div class="empty-state">
+      Could not load your progress.<br>
+      Check your internet connection and try again.
+    </div>`;
+    return;
+  }
 
   // Wire up click handlers
   container.querySelectorAll(".subject-card").forEach(card => {
@@ -152,8 +110,11 @@ export async function renderHomePage(container, subjects) {
 }
 
 async function buildSubjectCard(subject) {
-  const current = await getCurrentSkill(subject.id, subject.chapters);
-  const lastFive = await getLastFiveHomeworkScores(subject.id);
+  // Read current skill + last 5 scores in parallel
+  const [current, lastFive] = await Promise.all([
+    getCurrentSkill(subject.id, subject.chapters).catch(() => null),
+    getLastFiveHomeworkScores(subject.id).catch(() => [])
+  ]);
 
   const sessionsPassed = current ? current.sessionsPassed : 0;
   const skillLabel = current ? current.skillLabel : "Getting started";

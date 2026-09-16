@@ -1,25 +1,25 @@
 /* ==========================================================
    app.js
    Master router. Orchestrates the four views:
+     - Login          (if not signed in)
      - Home           (#homeView)
      - Subject        (#subjectView)
      - Homework       (#homeworkView)
      - Parent         (#parentView)
 
-   Handles navigation between them, and wires up the
-   subject cards, chapter dropdown, section progress, and
-   the "Today's Homework" button.
-
-   Also exposes window.App with global navigation helpers
-   so inline onclick handlers in HTML work.
+   Uses auth.js to determine whether to show the login
+   screen and what role the user is in. Role determines:
+     - Whether the Parent Dashboard button is shown
+     - Whether the parent view is accessible
    ========================================================== */
 
 import { Storage } from "./storage.js";
-import { renderHomePage } from "./home-page.js";
 import {
-  getCurrentSkill,
-  getChapterSkillStatus
-} from "./skill-tracker.js";
+  getSession,
+  renderLoginScreen,
+  isParent
+} from "./auth.js";
+import { renderHomePage } from "./home-page.js";
 import { renderHomeworkView } from "./homework-view.js";
 import {
   renderChapterView,
@@ -37,13 +37,14 @@ const SUBJECT_LOADERS = [
 ];
 
 /* ==========================================================
-   App state
+   State
    ========================================================== */
 const state = {
   subjects: {},
   activeSubjectId: null,
   activeChapterId: null,
-  previousView: null   // for back-from-homework
+  previousView: null,
+  session: null
 };
 
 /* ==========================================================
@@ -54,19 +55,17 @@ const els = {
   subjectView: document.getElementById("subjectView"),
   homeworkView: document.getElementById("homeworkView"),
   parentView: document.getElementById("parentView"),
+  loginView: document.getElementById("loginView"),
 
   homeContent: document.getElementById("homeContent"),
-
   subjectTitle: document.getElementById("subjectTitle"),
   chapterSelect: document.getElementById("chapterSelect"),
   homeworkBtn: document.getElementById("homeworkBtn"),
-  sectionProgress: document.getElementById("sectionProgress"),
   sectionContent: document.getElementById("sectionContent"),
-
   homeworkTitle: document.getElementById("homeworkTitle"),
   homeworkContent: document.getElementById("homeworkContent"),
-
-  parentContent: document.getElementById("parentContent")
+  parentContent: document.getElementById("parentContent"),
+  roleIndicator: document.getElementById("roleIndicator")
 };
 
 /* ==========================================================
@@ -74,10 +73,26 @@ const els = {
    ========================================================== */
 async function boot() {
   await Storage.init();
+
+  state.session = getSession();
+
+  if (!state.session) {
+    // Show login screen, hide everything else
+    showView("login");
+    renderLoginScreen(els.loginView, async (session) => {
+      state.session = session;
+      await boot();
+    });
+    return;
+  }
+
+  // Signed in — load subjects and show home
   await loadAllSubjects();
+  applyRoleToUI();
 
   if (Object.keys(state.subjects).length === 0) {
     els.homeContent.innerHTML = `<div class="empty-state">No subjects found. Please check the data folder.</div>`;
+    showView("home");
     return;
   }
 
@@ -108,6 +123,38 @@ async function loadAllSubjects() {
   }
 }
 
+/**
+ * Show / hide parent-only UI based on role.
+ */
+function applyRoleToUI() {
+  const parent = isParent(state.session);
+
+  // Parent Dashboard button — visible only to parents
+  document.querySelectorAll(".parent-only").forEach(el => {
+    el.style.display = parent ? "" : "none";
+  });
+
+  // Role indicator in the footer (both roles see it, but content differs)
+  if (els.roleIndicator) {
+    const emoji = parent ? "👤" : "🎒";
+    const label = parent ? "Parent mode" : "Student mode";
+    els.roleIndicator.innerHTML = `
+      <span class="role-label">${emoji} ${label}</span>
+      <button class="logout-btn" id="logoutBtn">Sign out</button>
+    `;
+    const btn = els.roleIndicator.querySelector("#logoutBtn");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        if (confirm("Sign out? You'll need to enter the code again next time.")) {
+          localStorage.removeItem("explorer_familyCode");
+          localStorage.removeItem("explorer_role");
+          window.location.reload();
+        }
+      });
+    }
+  }
+}
+
 /* ==========================================================
    VIEW SWITCHING
    ========================================================== */
@@ -116,7 +163,8 @@ function showView(which) {
     home: els.homeView,
     subject: els.subjectView,
     homework: els.homeworkView,
-    parent: els.parentView
+    parent: els.parentView,
+    login: els.loginView
   };
   Object.values(views).forEach(v => { if (v) v.style.display = "none"; });
   if (views[which]) views[which].style.display = "block";
@@ -125,7 +173,6 @@ function showView(which) {
 
 async function goHome() {
   showView("home");
-  // Re-render home so stars and progress are fresh
   await renderHomePage(els.homeContent, state.subjects);
 }
 
@@ -141,10 +188,8 @@ async function openSubject(subjectId) {
 
   state.activeSubjectId = subjectId;
 
-  // Populate toolbar
   els.subjectTitle.textContent = `${subj.icon} ${subj.name}`;
 
-  // Build chapter dropdown
   els.chapterSelect.innerHTML = "";
   subj.chapters.forEach(ch => {
     const opt = document.createElement("option");
@@ -153,20 +198,21 @@ async function openSubject(subjectId) {
     els.chapterSelect.appendChild(opt);
   });
 
-  // Determine which chapter to default to: the one with the current skill
-  const current = await getCurrentSkill(subjectId, subj.chapters);
-  const defaultChapterId = current ? current.chapterId : subj.chapters[0].id;
+  let defaultChapterId = subj.chapters[0].id;
+  try {
+    const { getCurrentSkill } = await import("./skill-tracker.js");
+    const current = await getCurrentSkill(subjectId, subj.chapters);
+    if (current) defaultChapterId = current.chapterId;
+  } catch (err) {
+    console.warn("Could not read current skill:", err);
+  }
   els.chapterSelect.value = defaultChapterId;
 
-  // Wire chapter dropdown
   els.chapterSelect.onchange = (e) => {
     activateChapter(e.target.value);
   };
 
-  // Show subject view
   showView("subject");
-
-  // Activate the default chapter
   await activateChapter(defaultChapterId);
 }
 
@@ -177,26 +223,12 @@ async function activateChapter(chapterId) {
   const chapter = subj.chapters.find(c => c.id === chapterId);
   if (!chapter) return;
 
-  // Update the dropdown to reflect this (in case we're called programmatically)
   els.chapterSelect.value = chapterId;
 
-  // Section config
   const sections = [
-    {
-      key: "study",
-      label: "Study Guide",
-      render: (container, ctx) => renderStudyGuideSection(container, ctx)
-    },
-    {
-      key: "check",
-      label: "Quick Check",
-      render: (container, ctx) => renderQuickCheckSection(container, ctx)
-    },
-    {
-      key: "quiz",
-      label: "Chapter Quiz",
-      render: (container, ctx) => renderChapterQuizSection(container, ctx)
-    }
+    { key: "study", label: "Study Guide", render: renderStudyGuideSection },
+    { key: "check", label: "Quick Check", render: renderQuickCheckSection },
+    { key: "quiz",  label: "Chapter Quiz", render: renderChapterQuizSection }
   ];
 
   renderChapterView(els.sectionContent, {
@@ -214,9 +246,7 @@ async function openHomework() {
   if (!subj) return;
 
   state.previousView = "subject";
-
   els.homeworkTitle.textContent = `${subj.icon} ${subj.name} — Today's Homework`;
-
   showView("homework");
 
   await renderHomeworkView(els.homeworkContent, {
@@ -226,7 +256,6 @@ async function openHomework() {
 }
 
 function backFromHomework() {
-  // Go back to whatever view launched homework
   if (state.previousView === "subject" && state.activeSubjectId) {
     showView("subject");
   } else {
@@ -238,13 +267,17 @@ function backFromHomework() {
    PARENT DASHBOARD
    ========================================================== */
 async function showParentDashboard() {
+  if (!isParent(state.session)) {
+    alert("Parent access only.");
+    return;
+  }
   const mod = await import("./parent-dashboard.js");
   showView("parent");
   await mod.renderParentDashboard(els.parentContent, state.subjects);
 }
 
 /* ==========================================================
-   Expose global helpers for inline HTML onclick
+   Expose globally
    ========================================================== */
 window.App = {
   goHome,
@@ -259,11 +292,10 @@ window.App = {
    ========================================================== */
 boot().catch(err => {
   console.error("Boot failed:", err);
-  els.homeContent.innerHTML = `
-    <div class="empty-state">
-      <strong>Something went wrong starting the app.</strong><br>
-      ${err.message}<br><br>
-      Make sure you're running from a local server (not opening the file directly).
+  document.body.innerHTML = `
+    <div style="padding: 40px; text-align: center; font-family: sans-serif;">
+      <h2>Something went wrong.</h2>
+      <p>${err.message}</p>
     </div>
   `;
 });

@@ -1,83 +1,92 @@
 /* ==========================================================
    storage.js
-   IndexedDB wrapper for storing quiz attempts.
-   Provides a simple async API: init, save, getAll, clear.
-   Also handles JSON export/import.
+   Supabase-backed storage layer.
+
+   Replaces the previous IndexedDB implementation. All
+   attempts and skill progress now live in Supabase.
+
+   Public API is IDENTICAL to the previous version, so
+   callers (quiz-engine, homework-view, parent-dashboard,
+   skill-tracker) don't need to change.
+
+   The only difference: everything is now async, and reads
+   are scoped by FAMILY_ID.
    ========================================================== */
 
-const DB_NAME = "scienceExplorerDB";
-const DB_VERSION = 1;
-const STORE_ATTEMPTS = "attempts";
-const STORE_META = "meta";
-
-let dbPromise = null;
-
-function openDB() {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_ATTEMPTS)) {
-        const store = db.createObjectStore(STORE_ATTEMPTS, { keyPath: "id" });
-        store.createIndex("timestamp", "timestamp", { unique: false });
-        store.createIndex("type", "type", { unique: false });
-        store.createIndex("subject", "subject", { unique: false });
-        store.createIndex("chapter", "chapter", { unique: false });
-      }
-      if (!db.objectStoreNames.contains(STORE_META)) {
-        db.createObjectStore(STORE_META, { keyPath: "key" });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return dbPromise;
-}
+import {
+  supaGet,
+  supaInsert,
+  supaUpsert,
+  supaDelete,
+  FAMILY_ID
+} from "./supabase-config.js";
 
 export const Storage = {
   /**
-   * Initialize DB (called on app startup).
+   * No-op — was used for IndexedDB setup.
+   * Kept so callers don't break.
    */
   async init() {
-    await openDB();
+    return true;
   },
 
+  /* ==========================================================
+     Attempts
+     ========================================================== */
+
   /**
-   * Save a quiz attempt.
-   * @param {Object} attempt - { id, type, subject, chapter, score, total, percent, duration, missed, timestamp }
+   * Save a quiz/homework attempt.
+   * @param {Object} attempt
    */
   async saveAttempt(attempt) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_ATTEMPTS, "readwrite");
-      const store = tx.objectStore(STORE_ATTEMPTS);
-      store.put(attempt);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
+    // Shape matches our Supabase table columns
+    const row = {
+      id: attempt.id || `attempt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      family_id: FAMILY_ID,
+      type: attempt.type,
+      subject: attempt.subject,
+      subject_name: attempt.subjectName || null,
+      chapter: attempt.chapter || null,
+      chapter_name: attempt.chapterName || null,
+      skill_key: attempt.skillKey || null,
+      skill_label: attempt.skillLabel || null,
+      session_number: attempt.sessionNumber || null,
+      score: attempt.score,
+      total: attempt.total,
+      percent: attempt.percent,
+      passed: attempt.passed || false,
+      duration: attempt.duration || null,
+      questions: attempt.questions || null,
+      missed: attempt.missed || null,
+      timestamp: attempt.timestamp || new Date().toISOString()
+    };
+
+    try {
+      const result = await supaUpsert("attempts", row, "id");
+      return result && result[0] ? result[0] : row;
+    } catch (err) {
+      console.error("Storage.saveAttempt failed:", err);
+      throw err;
+    }
   },
 
   /**
-   * Get all attempts, sorted newest first.
+   * Get all attempts for this family, sorted newest first.
    */
   async getAllAttempts() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_ATTEMPTS, "readonly");
-      const store = tx.objectStore(STORE_ATTEMPTS);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const results = req.result || [];
-        results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        resolve(results);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    try {
+      const rows = await supaGet(
+        `attempts?family_id=eq.${encodeURIComponent(FAMILY_ID)}&order=timestamp.desc`
+      );
+      return rows.map(rowToAttempt);
+    } catch (err) {
+      console.error("Storage.getAllAttempts failed:", err);
+      return [];
+    }
   },
 
   /**
-   * Get attempts filtered by type/chapter.
+   * Get attempts filtered by type/subject/chapter.
    */
   async getAttemptsBy(filter = {}) {
     const all = await this.getAllAttempts();
@@ -90,74 +99,139 @@ export const Storage = {
   },
 
   /**
-   * Clear all attempts (used by Parent Dashboard).
+   * Clear all attempts for this family.
    */
   async clearAllAttempts() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_ATTEMPTS, "readwrite");
-      tx.objectStore(STORE_ATTEMPTS).clear();
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
+    try {
+      await supaDelete(
+        `attempts?family_id=eq.${encodeURIComponent(FAMILY_ID)}`
+      );
+      return true;
+    } catch (err) {
+      console.error("Storage.clearAllAttempts failed:", err);
+      throw err;
+    }
   },
 
   /**
    * Bulk insert attempts (used by import).
    */
   async bulkInsert(attempts) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_ATTEMPTS, "readwrite");
-      const store = tx.objectStore(STORE_ATTEMPTS);
-      attempts.forEach(a => store.put(a));
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
+    if (!attempts || attempts.length === 0) return true;
+
+    const rows = attempts.map(a => ({
+      id: a.id || `attempt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      family_id: FAMILY_ID,
+      type: a.type,
+      subject: a.subject,
+      subject_name: a.subjectName || null,
+      chapter: a.chapter || null,
+      chapter_name: a.chapterName || null,
+      skill_key: a.skillKey || null,
+      skill_label: a.skillLabel || null,
+      session_number: a.sessionNumber || null,
+      score: a.score,
+      total: a.total,
+      percent: a.percent,
+      passed: a.passed || false,
+      duration: a.duration || null,
+      questions: a.questions || null,
+      missed: a.missed || null,
+      timestamp: a.timestamp || new Date().toISOString()
+    }));
+
+    // Insert in batches of 100 to avoid payload limits
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      try {
+        await supaUpsert("attempts", batch, "id");
+      } catch (err) {
+        console.error("Storage.bulkInsert batch failed:", err);
+        throw err;
+      }
+    }
+    return true;
   },
 
+  /* ==========================================================
+     Meta (skill progress)
+     ========================================================== */
+
   /**
-   * Get a meta value by key (used for quiz history tracking).
+   * Get the current skill progress for a subject.
+   * Returns null if nothing saved yet.
+   *
+   * Old shape: { chapterId, skillKey, sessionsPassed, sessionsAttempted }
    */
   async getMeta(key) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_META, "readonly");
-      const req = tx.objectStore(STORE_META).get(key);
-      req.onsuccess = () => resolve(req.result ? req.result.value : null);
-      req.onerror = () => reject(req.error);
-    });
+    // key is expected to be "skillProgress_<subject>"
+    const subject = extractSubjectFromKey(key);
+    if (!subject) return null;
+
+    try {
+      const rows = await supaGet(
+        `skill_progress?family_id=eq.${encodeURIComponent(FAMILY_ID)}&subject=eq.${encodeURIComponent(subject)}&limit=1`
+      );
+      if (!rows || rows.length === 0) return null;
+      const row = rows[0];
+      return {
+        chapterId: row.chapter_id,
+        skillKey: row.skill_key,
+        sessionsPassed: row.sessions_passed || 0,
+        sessionsAttempted: row.sessions_attempted || 0,
+        lastUpdated: row.last_updated
+      };
+    } catch (err) {
+      console.error("Storage.getMeta failed:", err);
+      return null;
+    }
   },
 
   /**
-   * Set a meta value (used for quiz history tracking).
+   * Save skill progress.
+   * key is expected to be "skillProgress_<subject>"
    */
   async setMeta(key, value) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_META, "readwrite");
-      tx.objectStore(STORE_META).put({ key, value });
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
+    const subject = extractSubjectFromKey(key);
+    if (!subject) {
+      console.warn("setMeta: cannot extract subject from key", key);
+      return false;
+    }
+
+    const row = {
+      family_id: FAMILY_ID,
+      subject: subject,
+      chapter_id: value.chapterId,
+      skill_key: value.skillKey,
+      sessions_passed: value.sessionsPassed || 0,
+      sessions_attempted: value.sessionsAttempted || 0,
+      last_updated: new Date().toISOString()
+    };
+
+    try {
+      await supaUpsert("skill_progress", row, "family_id,subject");
+      return true;
+    } catch (err) {
+      console.error("Storage.setMeta failed:", err);
+      throw err;
+    }
   },
 
-  /**
-   * Export all data as a JSON string.
-   */
+  /* ==========================================================
+     Export / Import
+     ========================================================== */
+
   async exportJSON() {
     const attempts = await this.getAllAttempts();
     return JSON.stringify({
       exportDate: new Date().toISOString(),
-      appVersion: "1.0",
+      appVersion: "2.0",
+      familyId: FAMILY_ID,
       attempts
     }, null, 2);
   },
 
-  /**
-   * Import from JSON string. Returns number of attempts imported.
-   * mode = "merge" or "replace"
-   */
   async importJSON(jsonString, mode = "merge") {
     const data = JSON.parse(jsonString);
     if (!data.attempts || !Array.isArray(data.attempts)) {
@@ -170,3 +244,44 @@ export const Storage = {
     return data.attempts.length;
   }
 };
+
+/* ==========================================================
+   Helpers
+   ========================================================== */
+
+/**
+ * Converts a Supabase row back to the shape the app expects.
+ */
+function rowToAttempt(row) {
+  return {
+    id: row.id,
+    type: row.type,
+    subject: row.subject,
+    subjectName: row.subject_name,
+    chapter: row.chapter,
+    chapterName: row.chapter_name,
+    skillKey: row.skill_key,
+    skillLabel: row.skill_label,
+    sessionNumber: row.session_number,
+    score: row.score,
+    total: row.total,
+    percent: row.percent,
+    passed: row.passed,
+    duration: row.duration,
+    questions: row.questions,
+    missed: row.missed,
+    timestamp: row.timestamp
+  };
+}
+
+/**
+ * Extracts the subject from a meta key of the form
+ * "skillProgress_<subject>". Returns null if the key
+ * doesn't match the pattern.
+ */
+function extractSubjectFromKey(key) {
+  if (!key) return null;
+  const prefix = "skillProgress_";
+  if (!key.startsWith(prefix)) return null;
+  return key.slice(prefix.length);
+}
