@@ -93,53 +93,51 @@ export const chapter = {
     <h3>📈 Line Plot Example (from class)</h3>
     <p>Your class made a line plot of the bounce heights from the Bouncy Ball Lab. Each <strong>X</strong> represents one trial. A line plot shows how often each value appears.</p>
 
-    <div class="diagram-box medium">
+        <div class="diagram-box medium">
       <svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg">
         <text x="240" y="20" text-anchor="middle" font-family="Comic Sans MS" font-size="13" font-weight="bold" fill="#333">Bouncy Ball — Height of Bounce (cm)</text>
 
-        <!-- number line -->
-        <line x1="40" y1="180" x2="440" y2="180" stroke="#333" stroke-width="2"/>
+        <!-- Number line -->
+        <line x1="40" y1="170" x2="440" y2="170" stroke="#333" stroke-width="2"/>
 
-        <!-- ticks and numbers -->
-        <line x1="60" y1="175" x2="60" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="60" y="200" text-anchor="middle" font-size="9" fill="#333">60</text>
-        <line x1="120" y1="175" x2="120" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="120" y="200" text-anchor="middle" font-size="9" fill="#333">70</text>
-        <line x1="180" y1="175" x2="180" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="180" y="200" text-anchor="middle" font-size="9" fill="#333">80</text>
-        <line x1="240" y1="175" x2="240" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="240" y="200" text-anchor="middle" font-size="9" fill="#333">90</text>
-        <line x1="300" y1="175" x2="300" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="300" y="200" text-anchor="middle" font-size="9" fill="#333">100</text>
-        <line x1="360" y1="175" x2="360" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="360" y="200" text-anchor="middle" font-size="9" fill="#333">110</text>
-        <line x1="420" y1="175" x2="420" y2="185" stroke="#333" stroke-width="1.5"/>
-        <text x="420" y="200" text-anchor="middle" font-size="9" fill="#333">120</text>
+        <!-- Ticks and numbers -->
+        <line x1="60" y1="165" x2="60" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="60" y="192" text-anchor="middle" font-size="10" fill="#333">60</text>
+        <line x1="120" y1="165" x2="120" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="120" y="192" text-anchor="middle" font-size="10" fill="#333">70</text>
+        <line x1="180" y1="165" x2="180" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="180" y="192" text-anchor="middle" font-size="10" fill="#333">80</text>
+        <line x1="240" y1="165" x2="240" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="240" y="192" text-anchor="middle" font-size="10" fill="#333">90</text>
+        <line x1="300" y1="165" x2="300" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="300" y="192" text-anchor="middle" font-size="10" fill="#333">100</text>
+        <line x1="360" y1="165" x2="360" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="360" y="192" text-anchor="middle" font-size="10" fill="#333">110</text>
+        <line x1="420" y1="165" x2="420" y2="175" stroke="#333" stroke-width="1.5"/>
+        <text x="420" y="192" text-anchor="middle" font-size="10" fill="#333">120</text>
 
-        <!-- 100 cm drop results (blue X's) -->
-        <!-- Values near 75, 78, 80, 82 -->
-        <text x="118" y="170" text-anchor="middle" font-size="16" fill="#4A90E2" font-weight="bold">X</text>
-        <text x="130" y="170" text-anchor="middle" font-size="16" fill="#4A90E2" font-weight="bold">X</text>
-        <text x="142" y="170" text-anchor="middle" font-size="16" fill="#4A90E2" font-weight="bold">X</text>
-        <text x="118" y="152" text-anchor="middle" font-size="16" fill="#4A90E2" font-weight="bold">X</text>
+        <!-- 100 cm drop (blue X's) — clustered around 70-73 cm -->
+        <text x="115" y="162" text-anchor="middle" font-size="14" fill="#4A90E2" font-weight="bold">X</text>
+        <text x="127" y="162" text-anchor="middle" font-size="14" fill="#4A90E2" font-weight="bold">X</text>
+        <text x="139" y="162" text-anchor="middle" font-size="14" fill="#4A90E2" font-weight="bold">X</text>
+        <text x="127" y="146" text-anchor="middle" font-size="14" fill="#4A90E2" font-weight="bold">X</text>
 
-        <!-- 150 cm drop results (purple X's) -->
-        <!-- Values near 105, 107, 110, 112, 115, 118 -->
-        <text x="312" y="170" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="325" y="170" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="335" y="170" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="348" y="170" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="360" y="170" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="325" y="152" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="348" y="152" text-anchor="middle" font-size="16" fill="#8E44AD" font-weight="bold">X</text>
+        <!-- 150 cm drop (purple X's) — clustered around 105-110 cm -->
+        <text x="310" y="162" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="322" y="162" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="334" y="162" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="346" y="162" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="358" y="162" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="322" y="146" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="346" y="146" text-anchor="middle" font-size="14" fill="#8E44AD" font-weight="bold">X</text>
 
-        <!-- Key -->
-        <rect x="20" y="20" width="140" height="45" fill="#FAFBFF" stroke="#CCC" rx="6"/>
-        <text x="30" y="38" font-size="10" fill="#333" font-weight="bold">Key:</text>
-        <text x="30" y="55" font-size="12" fill="#4A90E2" font-weight="bold">X</text>
-        <text x="45" y="55" font-size="10" fill="#333">= 100 cm drop</text>
-        <text x="110" y="55" font-size="12" fill="#8E44AD" font-weight="bold">X</text>
-        <text x="125" y="55" font-size="10" fill="#333">= 150 cm drop</text>
+        <!-- Key (top-left) -->
+        <rect x="15" y="30" width="180" height="55" fill="#FAFBFF" stroke="#D6E4FF" rx="6"/>
+        <text x="25" y="48" font-size="10" fill="#333" font-weight="bold">Key:</text>
+        <text x="25" y="68" font-size="12" fill="#4A90E2" font-weight="bold">X</text>
+        <text x="40" y="68" font-size="9" fill="#333">= 100 cm drop</text>
+        <text x="25" y="80" font-size="12" fill="#8E44AD" font-weight="bold">X</text>
+        <text x="40" y="80" font-size="9" fill="#333">= 150 cm drop</text>
       </svg>
       <div class="diagram-caption">Line plot: each X = one trial. Blue = 100 cm drop; Purple = 150 cm drop. The 150 cm drop consistently bounced higher.</div>
     </div>
