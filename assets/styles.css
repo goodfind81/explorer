@@ -1763,3 +1763,20 @@ tr:nth-child(even) { background: #F8F9FA; }
   .chapter-select-wrap { min-width: 0; }
   .section-step { font-size: 0.85em; padding: 10px 12px; min-width: 100px; }
 }
+
+.set-current-btn {
+  background: #E3F2FD;
+  color: var(--primary-blue);
+  border: 1px solid #90CAF9;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.78em;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.set-current-btn:hover {
+  background: var(--primary-blue);
+  color: white;
+}

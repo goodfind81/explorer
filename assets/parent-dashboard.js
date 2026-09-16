@@ -108,6 +108,8 @@ export async function renderParentDashboard(mainEl, subjects) {
       No attempts yet. Once practice starts, results show up here.
     </div>`;
     mainEl.appendChild(empty);
+    // Still show skill mastery so parents can set the current skill
+    await renderSkillMastery(mainEl, subjects);
     return;
   }
 
