@@ -346,3 +346,21 @@ export async function getChapterSkillStatus(subjectId, chapter) {
 function isChapterBeforeInSubject() {
   return false;
 }
+
+/* ==========================================================
+   Public API — manual override
+   Allows the parent to jump to any skill in any chapter.
+   Resets sessions to 0/5 so the 5-session counter starts fresh.
+   ========================================================== */
+
+export async function setCurrentSkill(subjectId, chapterId, skillKey) {
+  const progress = {
+    chapterId,
+    skillKey,
+    sessionsPassed: 0,
+    sessionsAttempted: 0,
+    lastUpdated: new Date().toISOString()
+  };
+  await writeProgress(subjectId, progress);
+  return progress;
+}

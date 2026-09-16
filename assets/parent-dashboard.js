@@ -335,11 +335,20 @@ async function renderSkillMastery(mainEl, subjects) {
           statusText = "Mastered";
         }
 
+        const canSetCurrent = icon !== "✓" && !(isCurrentChapter && skill.key === currentSkillKey);
         html += `
           <div style="display:flex; align-items:center; gap:10px; padding: 4px 0; font-size: 0.95em;">
             <span style="color:${color}; font-weight:bold; min-width:16px;">${icon}</span>
             <span style="flex:1;">${skill.label}</span>
             <span style="color:#888; font-size:0.85em;">${statusText}</span>
+            ${canSetCurrent ? `
+              <button class="set-current-btn"
+                data-subject="${subj.id}"
+                data-chapter="${chapter.id}"
+                data-skill="${skill.key}">
+                Set as current
+              </button>
+            ` : ""}
           </div>
         `;
       }
@@ -350,6 +359,30 @@ async function renderSkillMastery(mainEl, subjects) {
 
   card.innerHTML = html;
   mainEl.appendChild(card);
+    // Wire up "Set as current" buttons
+  card.querySelectorAll(".set-current-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const subjectId = btn.dataset.subject;
+      const chapterId = btn.dataset.chapter;
+      const skillKey = btn.dataset.skill;
+
+      const chapter = subj.chapters.find(c => c.id === chapterId);
+      const skill = chapter && chapter.skills
+        ? chapter.skills.find(s => s.key === skillKey)
+        : null;
+
+      const confirmMsg = skill
+        ? `Set "${skill.label}" as the current skill for ${subj.name}?\n\nThis will reset progress to 0/5 on that skill.`
+        : "Set this as the current skill?";
+
+      if (!confirm(confirmMsg)) return;
+
+      const { setCurrentSkill } = await import("./skill-tracker.js");
+      await setCurrentSkill(subjectId, chapterId, skillKey);
+      alert("Done! Reload the parent dashboard to see the update.");
+      renderParentDashboard(mainEl, subjects);
+    });
+  });
 }
 
 /* ==========================================================
