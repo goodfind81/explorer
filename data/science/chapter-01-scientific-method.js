@@ -106,72 +106,55 @@ export const chapter = {
   ],
 
   chapterQuiz: [
-    { question: "What is the Scientific Method?",
-      options: ["A creative process for making art", "A process scientists use to thoroughly answer questions", "A way of reading science books", "A training program for scientists"],
+    // --- What the Scientific Method is ---
+    {
+      question: "What is the Scientific Method?",
+      options: [
+        "A creative process for making art",
+        "A step-by-step process scientists use to answer questions about the natural world",
+        "A way of reading science books",
+        "A training program for scientists"
+      ],
       correct: 1,
-      explanation: "The Scientific Method is a systematic process used to answer scientific questions with evidence." },
-
-    { question: "Which question can be tested using the Scientific Method?",
-      options: ["Which animal is the cutest?", "Which type of soil helps a plant grow the tallest?", "What is the best color?", "Which food tastes best?"],
+      explanation: "The Scientific Method is a systematic process for investigating questions using evidence."
+    },
+    {
+      question: "Which question can be tested using the Scientific Method?",
+      options: [
+        "Which animal is the cutest?",
+        "Which type of soil helps a plant grow the tallest?",
+        "What is the best color?",
+        "Which food tastes best?"
+      ],
       correct: 1,
-      explanation: "Scientific questions must be testable and measurable. 'Which soil helps a plant grow tallest?' can be measured." },
-
-    { question: "A student thinks ice will melt faster in a warm room than in a cold room. This is the student's:",
-      options: ["Observation", "Hypothesis", "Conclusion", "Measurement"],
-      correct: 1,
-      explanation: "A hypothesis is a smart guess or prediction made before testing." },
-
-    { question: "After an experiment, a scientist looks at data and decides what the results mean. This is called:",
-      options: ["Drawing a conclusion", "Asking a question", "Making a prediction", "Making an observation"],
-      correct: 0,
-      explanation: "Looking at results and deciding what they mean is drawing a conclusion." },
-
-    { question: "Why do scientists repeat experiments?",
-      options: ["To waste time", "To make sure results are reliable and consistent", "Because they forget what happened", "To use more materials"],
-      correct: 1,
-      explanation: "Repeating helps confirm that results are reliable — not just a one-time fluke." },
-
-    { question: "Which of these is NOT testable by an experiment?",
-      options: ["How sunlight affects plant growth", "How water affects seed sprouting", "Which song is the best", "How temperature affects how fast ice melts"],
+      explanation: "Scientific questions must be testable and measurable. 'Which soil helps a plant grow tallest?' can be measured — the others are opinions."
+    },
+    {
+      question: "Which of these is NOT testable by an experiment?",
+      options: [
+        "How sunlight affects plant growth",
+        "How water affects seed sprouting",
+        "Which song is the best",
+        "How temperature affects how fast ice melts"
+      ],
       correct: 2,
-      explanation: "'Which song is best' is an opinion — it can't be measured or tested." },
-
-    { question: "Scientists look for answers to questions about which of the following?",
-      options: ["Magic", "The natural world", "The supernatural", "Opinions"],
+      explanation: "'Which song is best' is an opinion — it can't be measured or tested. The others all involve measurable changes."
+    },
+    {
+      question: "Scientists look for answers to questions about which of the following?",
+      options: [
+        "Magic",
+        "The natural world",
+        "The supernatural",
+        "Opinions"
+      ],
       correct: 1,
-      explanation: "Science studies the natural world — things we can observe, measure, and test." },
+      explanation: "Science studies the natural world — things we can observe, measure, and test."
+    },
 
-    { question: "What do scientists do immediately after asking a question?",
-      options: ["Skip straight to a conclusion", "Make a hypothesis or prediction", "Throw out their data", "Give up"],
-      correct: 1,
-      explanation: "After a question, the next step is a hypothesis — a smart guess about what will happen." },
-
-    { question: "What is data in a science experiment?",
-      options: ["A scientist's opinion", "Information collected during an experiment", "A type of tool", "A question"],
-      correct: 1,
-      explanation: "Data is the information (measurements and observations) collected during an experiment." },
-
-    { question: "A prediction should start with the words:",
-      options: ["I see...", "I predict...", "I measure...", "I count..."],
-      correct: 1,
-      explanation: "'I predict...' makes it clear you're making a hypothesis about the future result." },
-
-    { question: "In the Pendulum Lab, what was the INDEPENDENT variable?",
-      options: ["Number of swings", "String length", "Washer weight", "The timer"],
-      correct: 1,
-      explanation: "You changed the string length — that's the Independent Variable." },
-
-    { question: "In the Pendulum Lab, what was the DEPENDENT variable?",
-      options: ["Number of swings", "String length", "Washer weight", "Release position"],
-      correct: 0,
-      explanation: "You measured the number of swings — that's the Dependent Variable." },
-
-    { question: "Which variable did Galileo discover does NOT affect the period of a pendulum?",
-      options: ["String length", "Weight of the bob", "Release angle", "Room temperature"],
-      correct: 1,
-      explanation: "Galileo found that the weight of the bob doesn't change the period — only the string length does." },
-
-    { question: "What is the correct ORDER of the Scientific Method?",
+    // --- The 6 steps in order ---
+    {
+      question: "What is the correct ORDER of the Scientific Method?",
       options: [
         "Hypothesis → Question → Test → Data → Conclusion",
         "Question → Hypothesis → Test → Data → Conclusion",
@@ -179,46 +162,204 @@ export const chapter = {
         "Question → Test → Hypothesis → Conclusion → Data"
       ],
       correct: 1,
-      explanation: "The correct order is: Ask a Question, Make a Hypothesis, Test, Collect Data, Draw a Conclusion." },
-
-    { question: "A hypothesis is best described as:",
-      options: ["A fact you already know is true", "A smart guess about what will happen", "The final answer", "A type of measurement tool"],
+      explanation: "The correct order is: Ask a Question, Make a Hypothesis, Test, Collect Data, Draw a Conclusion."
+    },
+    {
+      question: "What is usually the FIRST step of the Scientific Method?",
+      options: [
+        "Write a conclusion",
+        "Ask a question",
+        "Make a graph",
+        "Test the hypothesis"
+      ],
       correct: 1,
-      explanation: "A hypothesis is a smart guess made BEFORE the test, based on observations and knowledge." },
-
-    { question: "Which step comes AFTER you collect data?",
-      options: ["Ask a question", "Make a hypothesis", "Analyze the results", "Design the experiment"],
+      explanation: "Scientists always start by asking a testable question. Without a question, there's nothing to test."
+    },
+    {
+      question: "What do scientists do immediately after asking a question?",
+      options: [
+        "Skip straight to a conclusion",
+        "Make a hypothesis or prediction",
+        "Throw out their data",
+        "Give up"
+      ],
+      correct: 1,
+      explanation: "After a question, the next step is a hypothesis — a smart guess about what will happen."
+    },
+    {
+      question: "Which step comes AFTER you collect data?",
+      options: [
+        "Ask a question",
+        "Make a hypothesis",
+        "Analyze the results",
+        "Design the experiment"
+      ],
       correct: 2,
-      explanation: "After collecting data, scientists analyze it to see what it means." },
+      explanation: "After collecting data, scientists analyze it to see what it means and then draw a conclusion."
+    },
 
-    { question: "A student wants to know if plants grow taller in red light or blue light. What should she do FIRST?",
-      options: ["Write a conclusion", "Ask a testable question", "Make a graph", "Buy plants"],
-      correct: 1,
-      explanation: "The first step of the Scientific Method is always to ask a testable question." },
-
-    { question: "Which scenario shows a scientist using the Scientific Method correctly?",
+    // --- Hypothesis and prediction ---
+    {
+      question: "A student thinks ice will melt faster in a warm room than in a cold room. This is the student's:",
       options: [
-        "Guessing a result and never testing it",
-        "Asking a question, forming a hypothesis, testing it, and analyzing results",
-        "Copying another scientist's answer without testing",
-        "Only reading about other people's experiments"
+        "Observation",
+        "Hypothesis",
+        "Conclusion",
+        "Measurement"
       ],
       correct: 1,
-      explanation: "The Scientific Method involves asking, hypothesizing, testing, analyzing, and concluding." },
+      explanation: "A hypothesis is a smart guess or prediction made BEFORE testing."
+    },
+    {
+      question: "A hypothesis is best described as:",
+      options: [
+        "A fact you already know is true",
+        "A smart guess about what will happen, based on what you know",
+        "The final answer",
+        "A type of measurement tool"
+      ],
+      correct: 1,
+      explanation: "A hypothesis uses background knowledge to make a prediction. It hasn't been tested yet."
+    },
+    {
+      question: "A prediction should start with the words:",
+      options: [
+        "I see...",
+        "I predict...",
+        "I measure...",
+        "I count..."
+      ],
+      correct: 1,
+      explanation: "'I predict...' makes it clear you're making a hypothesis about the future result."
+    },
 
-    { question: "A good experiment should change only ONE thing at a time. Why?",
-      options: ["To keep it fair and know what caused the result", "To save money", "To make it faster", "Because it's the rule"],
+    // --- Data and conclusions ---
+    {
+      question: "What is data in a science experiment?",
+      options: [
+        "A scientist's opinion",
+        "Information (measurements and observations) collected during an experiment",
+        "A type of tool",
+        "A question"
+      ],
+      correct: 1,
+      explanation: "Data is the information collected during an experiment — measurements, observations, counts."
+    },
+    {
+      question: "After an experiment, a scientist looks at the data and decides what the results mean. This is called:",
+      options: [
+        "Drawing a conclusion",
+        "Asking a question",
+        "Making a prediction",
+        "Making an observation"
+      ],
       correct: 0,
-      explanation: "Changing one thing at a time keeps the test fair — you know exactly what caused the result." },
+      explanation: "Looking at results and deciding what they mean is drawing a conclusion."
+    },
 
-    { question: "What is a testable question?",
+    // --- Why we repeat and why we care ---
+    {
+      question: "Why do scientists repeat experiments?",
       options: [
-        "A question that can only be answered by an opinion",
-        "A question that can be answered by observation or experiment",
-        "A question with no answer",
-        "A question about magic"
+        "To waste time",
+        "To make sure results are reliable and consistent, not just a one-time fluke",
+        "Because they forget what happened",
+        "To use more materials"
       ],
       correct: 1,
-      explanation: "A testable question can be answered using evidence from observation or experimentation." },
+      explanation: "Repeating helps confirm that results are reliable. A result that shows up every time is much more trustworthy than a single trial."
+    },
+    {
+      question: "A student does an experiment once and gets a result. Should they trust it?",
+      options: [
+        "Yes — one trial is enough",
+        "No — one trial could be a mistake; repeating gives more reliable results",
+        "Only if they used expensive tools",
+        "Only if the teacher watched"
+      ],
+      correct: 1,
+      explanation: "One trial can be affected by small errors. Repeating protects against mistakes and makes the result more reliable."
+    },
+
+    // --- Applying the method ---
+    {
+      question: "A student wants to know which paper towel absorbs the most water. What should they do FIRST?",
+      options: [
+        "Write a conclusion",
+        "Develop a question they can investigate",
+        "Decide which brand is the winner",
+        "Draw a graph of the results"
+      ],
+      correct: 1,
+      explanation: "The first step is always to ask a testable question. Everything else follows from that."
+    },
+    {
+      question: "A student is investigating: 'Which type of soil helps a plant grow tallest?' What is the independent variable?",
+      options: [
+        "The plant's height",
+        "The type of soil",
+        "The amount of water",
+        "The size of the pot"
+      ],
+      correct: 1,
+      explanation: "The Independent Variable is what you change — the type of soil."
+    },
+    {
+      question: "In that same plant experiment, what is the dependent variable?",
+      options: [
+        "The plant's height",
+        "The type of soil",
+        "The amount of water",
+        "The size of the pot"
+      ],
+      correct: 0,
+      explanation: "The Dependent Variable is what you measure — the plant's height."
+    },
+    {
+      question: "A good experiment should change only ONE thing at a time. Why?",
+      options: [
+        "To keep it fair and know what caused the result",
+        "To save money",
+        "To make it faster",
+        "Because it's the rule"
+      ],
+      correct: 0,
+      explanation: "Changing one thing at a time keeps the test fair — you know exactly what caused the result."
+    },
+
+    // --- Pendulum Lab application ---
+    {
+      question: "In the Pendulum Lab, what was the Independent Variable?",
+      options: [
+        "Number of swings",
+        "String length",
+        "Washer weight",
+        "The timer"
+      ],
+      correct: 1,
+      explanation: "You changed the string length — that's the Independent Variable."
+    },
+    {
+      question: "In the Pendulum Lab, what was the Dependent Variable?",
+      options: [
+        "Number of swings",
+        "String length",
+        "Washer weight",
+        "Release position"
+      ],
+      correct: 0,
+      explanation: "You measured the number of swings in a set time — that's the Dependent Variable."
+    },
+    {
+      question: "Galileo discovered that a pendulum's period (time per swing) depends on:",
+      options: [
+        "The weight of the bob",
+        "The string length",
+        "The color of the string",
+        "The time of day"
+      ],
+      correct: 1,
+      explanation: "Galileo found the string length controls the period — not the weight of the bob, and not the release position."
+    }
   ],
 };

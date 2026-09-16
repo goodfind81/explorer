@@ -100,119 +100,256 @@ export const chapter = {
   ],
 
   chapterQuiz: [
-    { question: "A student sees a puddle. Which is an INFERENCE?",
-      options: ["The puddle is 1 meter wide.", "The water is clear.", "The puddle is near the swings.", "It probably rained recently."],
+    // --- Core definitions ---
+    {
+      question: "What is an INFERENCE?",
+      options: [
+        "Something you can see, hear, smell, touch, or measure",
+        "An idea or explanation based on observations",
+        "A measurement with a number and unit",
+        "An opinion without any basis"
+      ],
+      correct: 1,
+      explanation: "An inference is an explanation — you use what you observed plus what you already know to reach a conclusion."
+    },
+    {
+      question: "What is the formula for making an inference?",
+      options: [
+        "Observation + Opinion = Inference",
+        "Observation + Background Knowledge = Inference",
+        "Question + Answer = Inference",
+        "Data + Graph = Inference"
+      ],
+      correct: 1,
+      explanation: "You combine what you observed with what you already know about the world to reach an inference."
+    },
+    {
+      question: "Inferences are ALWAYS based on:",
+      options: [
+        "Opinions",
+        "Observations",
+        "Feelings",
+        "Other inferences"
+      ],
+      correct: 1,
+      explanation: "An inference explains an observation. Without an observation, it's just a wild guess."
+    },
+
+    // --- Identifying inferences vs observations ---
+    {
+      question: "A student sees a puddle on the playground. Which is an INFERENCE?",
+      options: [
+        "The puddle is 1 meter wide.",
+        "The water is clear.",
+        "The puddle is near the swings.",
+        "It probably rained recently."
+      ],
       correct: 3,
-      explanation: "You didn't see it rain — you used background knowledge to infer it." },
-
-    { question: "A student sees a jacket on the floor. Which is an INFERENCE?",
-      options: ["The jacket is blue.", "The jacket has two sleeves.", "Someone probably forgot to pick it up.", "The jacket is next to a desk."],
-      correct: 2,
-      explanation: "'Someone forgot it' is a guess based on facts — that's an inference." },
-
-    { question: "Inferences are ALWAYS based on:",
-      options: ["Opinions", "Observations", "Feelings", "Other inferences"],
-      correct: 1,
-      explanation: "An inference explains an observation. Without an observation, it's just a wild guess." },
-
-    { question: "Observation + Background Knowledge = ?",
-      options: ["Hypothesis", "Inference", "Question", "Tool"],
-      correct: 1,
-      explanation: "Observations combined with what you already know create an inference." },
-
-    { question: "A dog is wagging its tail. What is a reasonable inference?",
-      options: ["The dog is sad.", "The dog is happy or excited.", "The dog is hungry.", "The dog is sick."],
-      correct: 1,
-      explanation: "A wagging tail often means a happy or excited dog — that's a common inference." },
-
-    { question: "Which statement is an inference?",
-      options: ["The turtle has a hard shell.", "The turtle is 20 cm long.", "The turtle is probably cold.", "The turtle has four legs."],
-      correct: 2,
-      explanation: "You can't directly measure a turtle's feelings — 'probably cold' is a guess, an inference." },
-
-    { question: "You see wet grass in the morning. A good inference is:",
-      options: ["The grass is green.", "The grass is 3 cm long.", "There was dew or rain overnight.", "The grass is healthy."],
-      correct: 2,
-      explanation: "Wet grass is a clue (observation). Dew or rain is a reasonable explanation (inference)." },
-
-    { question: "Which one is NOT an inference?",
-      options: ["The candle burned for a long time.", "The candle is short.", "The dog is hungry.", "It rained last night."],
-      correct: 1,
-      explanation: "'The candle is short' is a fact — an observation. The others are explanations or guesses." },
-
-    { question: "Inference helps scientists because it lets them:",
-      options: ["Skip experiments", "Explain what they observed", "Avoid data", "Guess randomly"],
-      correct: 1,
-      explanation: "Inferences let scientists offer explanations for their observations and guide new questions." },
-
-    { question: "A good inference starts with the words:",
-      options: ["I see...", "I infer...", "I measure...", "I count..."],
-      correct: 1,
-      explanation: "Starting with 'I infer...' makes it clear that you're offering an explanation, not an observation." },
-
-    { question: "You see a bird flying south in October. What's a good inference?",
-      options: ["The bird is blue.", "The bird has a wingspan of 30 cm.", "The bird is migrating for the winter.", "The bird is above the trees."],
-      correct: 2,
-      explanation: "Birds flying south in autumn is a clue that they're migrating — that's an inference." },
-
-    { question: "Which pair correctly shows Observation → Inference?",
+      explanation: "You didn't see it rain — you used background knowledge (wet ground often means rain) to infer it."
+    },
+    {
+      question: "A student sees a jacket on the floor. Which is an INFERENCE?",
       options: [
-        "The cake is gone → The cake was probably eaten",
-        "The cake was eaten → The cake is gone",
-        "The cake looks good → The cake is 20 cm wide",
-        "The cake has candles → The cake has 5 candles"
-      ],
-      correct: 0,
-      explanation: "Observation: the cake is gone. Inference: someone probably ate it." },
-
-    { question: "You hear a loud crash in the kitchen. What's a reasonable inference?",
-      options: ["The kitchen is quiet.", "It's 3 PM.", "Something probably fell or broke.", "The kitchen is yellow."],
-      correct: 2,
-      explanation: "A loud crash suggests something fell — that's an inference." },
-
-    { question: "Your friend is carrying an umbrella. What's a good inference?",
-      options: ["Your friend is 12 years old.", "Your friend has brown hair.", "Your friend thinks it might rain.", "Your friend is wearing a backpack."],
-      correct: 2,
-      explanation: "Carrying an umbrella suggests expecting rain — that's an inference." },
-
-    { question: "Which is an OBSERVATION, not an inference?",
-      options: ["The soup is too salty.", "The soup is probably cold.", "The soup has carrots and potatoes.", "The soup needs more pepper."],
-      correct: 2,
-      explanation: "Seeing and naming the vegetables is a fact. The others are opinions or inferences." },
-
-    { question: "Your pencil is missing from your desk. What's a good inference?",
-      options: ["My pencil is yellow.", "My pencil is 15 cm long.", "Someone probably borrowed it.", "My pencil is sharp."],
-      correct: 2,
-      explanation: "The pencil being missing is an observation. Someone probably borrowing it is a reasonable inference." },
-
-    { question: "Which best explains why inferences must be based on observations?",
-      options: [
-        "Because inferences without observations are just wild guesses",
-        "Because observations are more fun",
-        "Because inferences need graphs",
-        "Because teachers said so"
-      ],
-      correct: 0,
-      explanation: "An inference is an explanation of what you observed. Without an observation, it's just a guess." },
-
-    { question: "You see smoke coming from a chimney. What's a good inference?",
-      options: ["The chimney is gray.", "Someone probably has a fire going inside.", "The chimney is tall.", "The chimney is on a house."],
-      correct: 1,
-      explanation: "Smoke from a chimney suggests a fire inside — that's an inference." },
-
-    { question: "A car is pulled over with its hazard lights on. What's a good inference?",
-      options: ["The car is red.", "The car has four wheels.", "The car probably has a problem.", "The car has a license plate."],
-      correct: 2,
-      explanation: "Hazard lights usually mean the car has trouble — that's an inference." },
-
-    { question: "Why do scientists need BOTH observations and inferences?",
-      options: [
-        "Only observations matter",
-        "Only inferences matter",
-        "Observations give facts, inferences give explanations — both help us understand",
-        "Neither is important"
+        "The jacket is blue.",
+        "The jacket has two sleeves.",
+        "Someone probably forgot to pick it up.",
+        "The jacket is next to a desk."
       ],
       correct: 2,
-      explanation: "Observations give us facts, and inferences give us explanations. Together they help us understand the world." },
+      explanation: "'Someone forgot it' is a guess based on facts. The others are direct observations."
+    },
+    {
+      question: "Which statement is an inference?",
+      options: [
+        "The turtle has a hard shell.",
+        "The turtle is 20 cm long.",
+        "The turtle is probably cold.",
+        "The turtle has four legs."
+      ],
+      correct: 2,
+      explanation: "You can't directly measure a turtle's feelings. 'Probably cold' is a guess based on context — an inference."
+    },
+    {
+      question: "Which one is NOT an inference?",
+      options: [
+        "The candle burned for a long time.",
+        "The candle is short.",
+        "The dog is hungry.",
+        "It rained last night."
+      ],
+      correct: 1,
+      explanation: "'The candle is short' is a fact — an observation. The others are explanations."
+    },
+
+    // --- Real-world scenarios ---
+    {
+      question: "A dog is wagging its tail. What is a reasonable inference?",
+      options: [
+        "The dog is sad.",
+        "The dog is happy or excited.",
+        "The dog is hungry.",
+        "The dog is sick."
+      ],
+      correct: 1,
+      explanation: "A wagging tail often means happy or excited — that's a common inference people make from experience."
+    },
+    {
+      question: "You see wet grass in the morning. A good inference is:",
+      options: [
+        "The grass is green.",
+        "The grass is 3 cm long.",
+        "There was dew or rain overnight.",
+        "The grass is healthy."
+      ],
+      correct: 2,
+      explanation: "Wet grass → dew or rain is a reasonable inference (you didn't actually see the rain happen)."
+    },
+    {
+      question: "You hear a loud crash in the kitchen. What's a reasonable inference?",
+      options: [
+        "The kitchen is quiet.",
+        "It's 3 PM.",
+        "Something probably fell or broke.",
+        "The kitchen is yellow."
+      ],
+      correct: 2,
+      explanation: "A loud crash suggests something fell — that's an inference from experience."
+    },
+    {
+      question: "Your friend is carrying an umbrella. What's a good inference?",
+      options: [
+        "Your friend is 12 years old.",
+        "Your friend has brown hair.",
+        "Your friend thinks it might rain.",
+        "Your friend is wearing a backpack."
+      ],
+      correct: 2,
+      explanation: "Carrying an umbrella suggests expecting rain — that's the inference."
+    },
+    {
+      question: "You see smoke coming from a chimney. What's a good inference?",
+      options: [
+        "The chimney is gray.",
+        "Someone probably has a fire going inside.",
+        "The chimney is tall.",
+        "The chimney is on a house."
+      ],
+      correct: 1,
+      explanation: "Smoke from a chimney suggests a fire inside — that's an inference."
+    },
+    {
+      question: "A car is pulled over with its hazard lights on. What's a good inference?",
+      options: [
+        "The car is red.",
+        "The car has four wheels.",
+        "The car probably has a problem.",
+        "The car has a license plate."
+      ],
+      correct: 2,
+      explanation: "Hazard lights usually mean the car has trouble — that's an inference."
+    },
+    {
+      question: "A bird is flying south in October. What's a good inference?",
+      options: [
+        "The bird is blue.",
+        "The bird has a wingspan of 30 cm.",
+        "The bird is migrating for the winter.",
+        "The bird is above the trees."
+      ],
+      correct: 2,
+      explanation: "Birds flying south in autumn is a clue that they're migrating — that's an inference."
+    },
+    {
+      question: "Your pencil is missing from your desk. What's a good inference?",
+      options: [
+        "My pencil is yellow.",
+        "My pencil is 15 cm long.",
+        "Someone probably borrowed it.",
+        "My pencil is sharp."
+      ],
+      correct: 2,
+      explanation: "The pencil being missing is an observation. The explanation ('someone borrowed it') is an inference."
+    },
+
+    // --- Reasoning and critique ---
+    {
+      question: "Two students look at the same puddle. One says 'it must have rained.' The other says 'someone probably spilled water.' Both are:",
+      options: [
+        "Observations",
+        "Inferences from the same observation",
+        "Wrong",
+        "Opinions"
+      ],
+      correct: 1,
+      explanation: "One observation can lead to different inferences. That's why new evidence is useful to test which inference is correct."
+    },
+    {
+      question: "Why can't you make an inference without an observation?",
+      options: [
+        "Because it's against the rules",
+        "Because without evidence, it's just a wild guess, not an inference",
+        "Because inferences require a tool",
+        "Because inferences are always wrong"
+      ],
+      correct: 1,
+      explanation: "An inference is an explanation OF something. Without an observation to explain, there's nothing to infer from."
+    },
+    {
+      question: "A student says, 'I infer it rained last night because the sidewalk is wet.' What's the observation in this statement?",
+      options: [
+        "That it rained last night",
+        "That the sidewalk is wet",
+        "That the student made an inference",
+        "That it's morning"
+      ],
+      correct: 1,
+      explanation: "'The sidewalk is wet' is what was observed. The inference is 'it rained last night.'"
+    },
+    {
+      question: "You infer that your friend is tired because they're yawning. Later you learn they stayed up late watching a movie. Your inference was:",
+      options: [
+        "Wrong because you didn't have proof",
+        "Supported by new evidence — it matches what you learned",
+        "Irrelevant",
+        "A new inference"
+      ],
+      correct: 1,
+      explanation: "New evidence can support or challenge an inference. Here the evidence (staying up late) supports the tired inference."
+    },
+
+    // --- Comparing to observations ---
+    {
+      question: "Which sentence describes something that can be directly SEEN or MEASURED (an observation, not an inference)?",
+      options: [
+        "The bird is probably looking for food.",
+        "The bird has a red chest and blue wings.",
+        "The bird must be cold.",
+        "The bird wants to fly home."
+      ],
+      correct: 1,
+      explanation: "You can directly see the bird's colors. The others are inferences about what the bird is thinking or feeling."
+    },
+    {
+      question: "Ava notices the sidewalk is wet and says, 'It must have rained during the night.' What did Ava make?",
+      options: [
+        "An observation",
+        "A measurement",
+        "An inference",
+        "A prediction"
+      ],
+      correct: 2,
+      explanation: "Wet sidewalk = observation. 'It must have rained' = inference (the explanation for what she observed)."
+    },
+    {
+      question: "Which of these is an OBSERVATION?",
+      options: [
+        "The rock is probably volcanic.",
+        "The rock is rough and gray.",
+        "The rock came from a volcano.",
+        "The rock is very old."
+      ],
+      correct: 1,
+      explanation: "'Rough and gray' is what you can directly see and feel. The others are inferences about the rock's history."
+    }
   ],
 };

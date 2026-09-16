@@ -123,109 +123,206 @@ export const chapter = {
   ],
 
   chapterQuiz: [
-    { question: "Which tool measures the LENGTH of a book?",
+    // --- Tool identification ---
+    {
+      question: "Which tool would you use to measure the LENGTH of a book?",
       options: ["Balance", "Ruler", "Thermometer", "Graduated cylinder"],
       correct: 1,
-      explanation: "A ruler measures length." },
-
-    { question: "Which tool measures MASS?",
+      explanation: "A ruler measures length in centimeters or meters."
+    },
+    {
+      question: "Which tool measures MASS?",
       options: ["Ruler", "Thermometer", "Balance", "Measuring cup"],
       correct: 2,
-      explanation: "A balance (or scale) measures mass." },
-
-    { question: "Which measurement shows TEMPERATURE?",
-      options: ["15 grams", "12 centimeters", "30°C", "8 milliliters"],
-      correct: 2,
-      explanation: "Temperature is measured in °C." },
-
-    { question: "A scientist measures 500 mL of water. What is being measured?",
-      options: ["Mass", "Length", "Temperature", "Volume"],
-      correct: 3,
-      explanation: "mL measures liquid volume." },
-
-    { question: "What is the metric unit for mass?",
-      options: ["Liter", "Gram", "Meter", "Celsius"],
-      correct: 1,
-      explanation: "Mass is measured in grams (g) or kilograms (kg)." },
-
-    { question: "Which unit is used for length in the metric system?",
-      options: ["Gram", "Liter", "Meter", "Celsius"],
-      correct: 2,
-      explanation: "Length uses meters (m) or centimeters (cm)." },
-
-    { question: "Water freezes at what temperature?",
-      options: ["0°C", "100°C", "50°C", "32°C"],
-      correct: 0,
-      explanation: "Water freezes at 0°C, boils at 100°C." },
-
-    { question: "Where do you read a graduated cylinder?",
-      options: ["Top of liquid", "Bottom of the meniscus", "Middle of the liquid", "Anywhere"],
-      correct: 1,
-      explanation: "Read at the bottom of the meniscus, eyes level with the liquid." },
-
-    { question: "Which tool would you use to measure the temperature of water?",
+      explanation: "A balance (or scale) measures mass in grams or kilograms."
+    },
+    {
+      question: "Which tool would you use to measure the TEMPERATURE of water?",
       options: ["Ruler", "Balance", "Thermometer", "Beaker"],
       correct: 2,
-      explanation: "A thermometer measures temperature." },
-
-    { question: "Which unit is used for liquid volume?",
-      options: ["Gram", "Milliliter", "Meter", "Celsius"],
-      correct: 1,
-      explanation: "Liquid volume uses milliliters (mL) or liters (L)." },
-
-    { question: "What does the Z/T button do on a balance?",
-      options: ["Turns the balance off", "Resets the balance to read zero", "Shows the temperature", "Tells you the time"],
-      correct: 1,
-      explanation: "The Z/T (zero/tare) button resets the balance to 0 before you weigh something." },
-
-    { question: "Which tool has a MENISCUS?",
-      options: ["Ruler", "Balance", "Graduated cylinder", "Thermometer"],
-      correct: 2,
-      explanation: "Liquids in a graduated cylinder form a meniscus — the curved surface at the top." },
-
-    { question: "If you want to measure a pencil's length, which unit is best?",
-      options: ["Kilograms", "Milliliters", "Centimeters", "Celsius"],
-      correct: 2,
-      explanation: "Length is measured in centimeters (cm) or meters (m)." },
-
-    { question: "Which unit is a metric unit?",
-      options: ["Inches", "Pounds", "Grams", "Miles"],
-      correct: 2,
-      explanation: "Grams are metric. Inches, pounds, and miles are in the US customary system." },
-
-    { question: "You want to find the mass of a paper clip. Which tool?",
+      explanation: "A thermometer measures temperature in degrees Celsius."
+    },
+    {
+      question: "Which tool would you use to measure the VOLUME of a liquid?",
+      options: ["Ruler", "Balance", "Thermometer", "Graduated cylinder"],
+      correct: 3,
+      explanation: "A graduated cylinder measures liquid volume in milliliters (mL) or liters (L)."
+    },
+    {
+      question: "You want to find the mass of a paper clip. Which tool should you use?",
       options: ["Ruler", "Balance", "Thermometer", "Graduated cylinder"],
       correct: 1,
-      explanation: "A balance measures mass." },
+      explanation: "A balance measures mass."
+    },
 
-    { question: "A student reads a graduated cylinder and sees the liquid at 45 mL. Where did she read the number?",
-      options: ["At the top of the meniscus", "At the bottom of the meniscus", "At the glass rim", "At the base of the cylinder"],
-      correct: 1,
-      explanation: "Always read from the bottom of the meniscus, with eyes level with the liquid." },
-
-    { question: "What does a thermometer measure?",
-      options: ["Mass", "Volume", "Temperature", "Length"],
+    // --- Choosing the right tool for the situation ---
+    {
+      question: "Maya puts a cup of water in a sunny window and another in a shady spot. She wants to find out which water gets warmer. Which tool would be most useful?",
+      options: ["Ruler", "Balance", "Thermometer", "Stopwatch"],
       correct: 2,
-      explanation: "A thermometer measures temperature, usually in degrees Celsius (°C)." },
+      explanation: "She's comparing temperatures, so a thermometer is the right tool."
+    },
+    {
+      question: "Carlos wants to know how much time each ice cube takes to melt in a metal vs. a plastic container. Which tool should he use?",
+      options: ["Ruler", "Balance", "Thermometer", "Stopwatch"],
+      correct: 3,
+      explanation: "He's measuring time, so a stopwatch is the right tool."
+    },
+    {
+      question: "A scientist wants to know how much water a plant absorbs each day. Which tool should she use?",
+      options: [
+        "A graduated cylinder to measure the water before and after",
+        "A ruler to measure the plant height",
+        "A thermometer to measure the water temperature",
+        "A balance to weigh the water"
+      ],
+      correct: 0,
+      explanation: "Volume is measured with a graduated cylinder. She compares before-and-after amounts to find what was absorbed."
+    },
 
-    { question: "Which metric unit would measure the mass of an elephant?",
+    // --- Units and metric system ---
+    {
+      question: "What is the metric unit for MASS?",
+      options: ["Liter", "Gram", "Meter", "Celsius"],
+      correct: 1,
+      explanation: "Mass is measured in grams (g) or kilograms (kg)."
+    },
+    {
+      question: "Which unit is used for LENGTH in the metric system?",
+      options: ["Gram", "Liter", "Meter", "Celsius"],
+      correct: 2,
+      explanation: "Length uses meters (m) or centimeters (cm)."
+    },
+    {
+      question: "Which unit is used for LIQUID VOLUME?",
+      options: ["Gram", "Milliliter", "Meter", "Celsius"],
+      correct: 1,
+      explanation: "Liquid volume uses milliliters (mL) or liters (L)."
+    },
+    {
+      question: "Which measurement shows TEMPERATURE?",
+      options: ["15 grams", "12 centimeters", "30°C", "8 milliliters"],
+      correct: 2,
+      explanation: "Temperature is measured in degrees Celsius (°C)."
+    },
+    {
+      question: "Water freezes at what temperature?",
+      options: ["0°C", "100°C", "50°C", "32°C"],
+      correct: 0,
+      explanation: "Water freezes at 0°C and boils at 100°C."
+    },
+    {
+      question: "Which unit is a METRIC unit?",
+      options: ["Inches", "Pounds", "Grams", "Miles"],
+      correct: 2,
+      explanation: "Grams are metric. Inches, pounds, and miles belong to the US customary system."
+    },
+    {
+      question: "If you want to measure the LENGTH of a pencil, which unit is best?",
+      options: ["Kilograms", "Milliliters", "Centimeters", "Celsius"],
+      correct: 2,
+      explanation: "Length is measured in centimeters (cm) or meters (m)."
+    },
+    {
+      question: "Which metric unit would you use to measure the mass of an elephant?",
       options: ["Grams", "Kilograms", "Milliliters", "Centimeters"],
       correct: 1,
-      explanation: "Kilograms (kg) are used for larger masses like elephants. Grams would give a huge number." },
-
-    { question: "If a thermometer reads 30°C, is the water hot or cold?",
-      options: ["Freezing cold", "Room temperature", "Warm", "Boiling"],
-      correct: 2,
-      explanation: "30°C is warmer than room temperature (about 20°C) but below boiling (100°C)." },
-
-    { question: "Why do scientists use the metric system instead of inches and pounds?",
+      explanation: "Kilograms (kg) work better for large masses. Grams would give an awkwardly huge number."
+    },
+    {
+      question: "Why do scientists use the metric system?",
       options: [
-        "Because it's easier to write",
-        "Because it's the same all around the world",
+        "Because it's easier to spell",
+        "Because it's the same all around the world, so everyone can share and compare measurements",
         "Because it uses bigger numbers",
-        "Because teachers like it"
+        "Because teachers prefer it"
       ],
       correct: 1,
-      explanation: "The metric system is used worldwide, so scientists everywhere can share and compare measurements." },
+      explanation: "The metric system is used globally, which means measurements are universally understood and comparable."
+    },
+
+    // --- Reading a graduated cylinder (meniscus) ---
+    {
+      question: "Where do you read the measurement on a graduated cylinder?",
+      options: [
+        "At the top of the liquid",
+        "At the bottom of the meniscus (the curve)",
+        "At the middle of the liquid",
+        "Wherever it's easiest"
+      ],
+      correct: 1,
+      explanation: "The meniscus is the curved surface. Read at the bottom of the curve with your eye level with the liquid."
+    },
+    {
+      question: "Why does water form a curved meniscus in a graduated cylinder?",
+      options: [
+        "Because the water is contaminated",
+        "Because water molecules stick to the glass slightly, pulling the edges up",
+        "Because gravity is weaker in glass",
+        "Because the cylinder is faulty"
+      ],
+      correct: 1,
+      explanation: "Water molecules are attracted to glass (adhesion), which pulls the edges of the water up and creates the curve."
+    },
+    {
+      question: "You look at a graduated cylinder from above (not at eye level). What problem does that cause?",
+      options: [
+        "Nothing — the reading is the same from any angle",
+        "The reading looks different because of the viewing angle, so you might read the wrong value",
+        "The water spills",
+        "The cylinder breaks"
+      ],
+      correct: 1,
+      explanation: "Looking at the meniscus from above or below gives a distorted reading. Always read with your eye level with the liquid."
+    },
+
+    // --- Reading a thermometer ---
+    {
+      question: "What does a thermometer measure?",
+      options: ["Mass", "Volume", "Temperature", "Length"],
+      correct: 2,
+      explanation: "A thermometer measures temperature, usually in degrees Celsius (°C)."
+    },
+    {
+      question: "If a thermometer reads 30°C, is the water hot or cold?",
+      options: [
+        "Freezing cold",
+        "Room temperature",
+        "Warm (but not boiling)",
+        "Boiling"
+      ],
+      correct: 2,
+      explanation: "30°C is warmer than room temperature (about 20°C) but below boiling (100°C)."
+    },
+    {
+      question: "You just put a thermometer in warm water. When should you read the temperature?",
+      options: [
+        "Immediately, as soon as the thermometer touches the water",
+        "After the liquid inside the thermometer stops moving and settles",
+        "After taking it out of the water",
+        "It doesn't matter when you read it"
+      ],
+      correct: 1,
+      explanation: "The thermometer needs a moment to adjust to the water's temperature. Read it once the liquid stops moving."
+    },
+
+    // --- Applying measurement skills ---
+    {
+      question: "A student wants to measure the volume of a small rock. Which method would work?",
+      options: [
+        "Put the rock on a balance",
+        "Measure the rock with a ruler",
+        "Put water in a graduated cylinder, add the rock, and see how much the water level rises",
+        "Use a thermometer"
+      ],
+      correct: 2,
+      explanation: "Measuring the water level change shows the volume of the rock (water displacement method)."
+    },
+    {
+      question: "You measure a pencil's length three times: 15.2 cm, 15.3 cm, 15.1 cm. What is the average?",
+      options: ["15.0 cm", "15.2 cm", "15.3 cm", "15.5 cm"],
+      correct: 1,
+      explanation: "(15.2 + 15.3 + 15.1) ÷ 3 = 45.6 ÷ 3 = 15.2 cm. Averaging multiple trials gives a more reliable result."
+    }
   ],
 };

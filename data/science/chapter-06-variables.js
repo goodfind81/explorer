@@ -114,104 +114,238 @@ export const chapter = {
   ],
 
   chapterQuiz: [
-    { question: "The variable you PURPOSELY CHANGE is called the:",
-      options: ["Dependent Variable", "Controlled Variable", "Independent Variable", "Constant"],
+    // --- Core definitions ---
+    {
+      question: "The variable you PURPOSELY CHANGE in an experiment is called the:",
+      options: [
+        "Dependent Variable",
+        "Controlled Variable",
+        "Independent Variable",
+        "Constant"
+      ],
       correct: 2,
-      explanation: "The Independent Variable is what you change on purpose." },
+      explanation: "The Independent Variable is what you change on purpose. 'Independent' means you control it."
+    },
+    {
+      question: "The variable you MEASURE or OBSERVE in an experiment is called the:",
+      options: [
+        "Independent Variable",
+        "Dependent Variable",
+        "Controlled Variable",
+        "Constant"
+      ],
+      correct: 1,
+      explanation: "The Dependent Variable is the data you collect. It 'depends' on what you changed."
+    },
+    {
+      question: "Variables that must stay the SAME across all trials are called:",
+      options: [
+        "Independent Variables",
+        "Dependent Variables",
+        "Controlled Variables (constants)",
+        "Hypotheses"
+      ],
+      correct: 2,
+      explanation: "Controlled Variables (also called constants) are kept the same so the test is fair."
+    },
+    {
+      question: "Why is it important to keep controlled variables the same?",
+      options: [
+        "So the experiment finishes faster",
+        "So you know exactly what caused the result — the one thing you changed",
+        "Because teachers require it",
+        "So you use fewer materials"
+      ],
+      correct: 1,
+      explanation: "If many things change at once, you can't tell what caused the result. Keeping everything else constant isolates the effect of your Independent Variable."
+    },
 
-    { question: "'How does water affect plant growth?' What is the DEPENDENT variable?",
+    // --- Identifying variables in scenarios ---
+    {
+      question: "Experiment: 'How does the amount of water affect plant growth?' What is the Independent Variable?",
       options: ["Amount of water", "Plant growth", "Type of soil", "Amount of sunlight"],
-      correct: 1,
-      explanation: "The Dependent Variable is what you measure — plant growth." },
-
-    { question: "'How does water affect plant growth?' Which is a CONTROLLED variable?",
-      options: ["Amount of water", "Plant growth", "Same type of soil for all", "The question"],
-      correct: 2,
-      explanation: "Controlled variables stay the same so the test is fair." },
-
-    { question: "Why only change ONE thing at a time?",
-      options: ["To be faster", "So you know what caused the result", "To use fewer materials", "Because it's a rule"],
-      correct: 1,
-      explanation: "Changing only one thing means you know what caused the result." },
-
-    { question: "In the Pendulum Lab, the thing you changed was:",
-      options: ["The washer weight", "The string length", "The timer", "The table"],
-      correct: 1,
-      explanation: "You changed the string length — the Independent Variable." },
-
-    { question: "In the Pendulum Lab, what did you measure?",
-      options: ["String length", "Washer weight", "Number of swings", "Room temperature"],
-      correct: 2,
-      explanation: "You counted the number of swings — the Dependent Variable." },
-
-    { question: "The Dependent Variable goes on which axis of a graph?",
-      options: ["X-axis (horizontal)", "Y-axis (vertical)", "Either one", "Neither"],
-      correct: 1,
-      explanation: "The Dependent Variable goes on the Y-axis. The Independent Variable goes on the X-axis." },
-
-    { question: "Which is another name for controlled variables?",
-      options: ["Constants", "Conclusions", "Predictions", "Hypotheses"],
       correct: 0,
-      explanation: "Controlled variables are also called constants because they stay the same." },
-
-    { question: "Which of these is NOT a variable in an experiment?",
-      options: ["The thing you change", "The thing you measure", "The thing you keep the same", "The color of your pencil"],
-      correct: 3,
-      explanation: "The color of your pencil doesn't affect the experiment — it's not a variable in the test." },
-
-    { question: "Good experiments have how many independent variables at a time?",
-      options: ["As many as possible", "One", "Two or three", "Zero"],
+      explanation: "You change the amount of water, so that's the Independent Variable."
+    },
+    {
+      question: "In that same experiment, what is the Dependent Variable?",
+      options: ["Amount of water", "Plant growth", "Type of soil", "Size of pot"],
       correct: 1,
-      explanation: "Only ONE independent variable at a time, so you know what caused the result." },
-
-    { question: "'How does sunlight affect plant growth?' What is the Independent Variable?",
-      options: ["Plant growth", "Amount of sunlight", "Type of soil", "Type of plant"],
-      correct: 1,
-      explanation: "You're changing the amount of sunlight — that's the Independent Variable." },
-
-    { question: "'How does sunlight affect plant growth?' What is the Dependent Variable?",
-      options: ["Plant growth", "Amount of sunlight", "Type of soil", "Size of pot"],
-      correct: 0,
-      explanation: "You measure the plant growth — that's the Dependent Variable." },
-
-    { question: "'How does the material of a ball affect bounce height?' What is the Independent Variable?",
+      explanation: "You measure how much the plant grows, so growth is the Dependent Variable."
+    },
+    {
+      question: "In that same experiment, which is a Controlled Variable?",
+      options: ["Amount of water", "Plant growth", "Same type of soil for all plants", "The question"],
+      correct: 2,
+      explanation: "Same soil for every plant keeps the test fair. Soil is a controlled variable."
+    },
+    {
+      question: "Experiment: 'How does the material of a ball affect bounce height?' What is the Independent Variable?",
       options: ["Bounce height", "Material of the ball", "Drop height", "Type of floor"],
       correct: 1,
-      explanation: "You change the material of the ball — that's the IV." },
-
-    { question: "In the same ball experiment, what is a CONTROLLED variable?",
-      options: ["Bounce height", "Material of the ball", "Same drop height for all balls", "The question"],
-      correct: 2,
-      explanation: "Controlled variables stay the same — like dropping from the same height each time." },
-
-    { question: "In the same ball experiment, what is the DEPENDENT variable?",
+      explanation: "You change the material of the ball, so it's the Independent Variable."
+    },
+    {
+      question: "In that same ball experiment, what is the Dependent Variable?",
       options: ["Bounce height", "Material of the ball", "Drop height", "Room temperature"],
       correct: 0,
-      explanation: "You measure how high the ball bounces — that's the DV." },
-
-    { question: "Why do scientists repeat experiments with the same setup?",
-      options: ["To waste time", "To be sure results are reliable", "Because they forgot", "To use up materials"],
-      correct: 1,
-      explanation: "Repeating helps confirm the results are reliable and not a one-time fluke." },
-
-    { question: "You want to test which paper towel absorbs the most water. What is the Independent Variable?",
-      options: ["Brand of paper towel", "Amount of water absorbed", "Amount of water poured", "Time"],
-      correct: 0,
-      explanation: "You change the brand of paper towel — that's the IV." },
-
-    { question: "In the paper towel test, what is the Dependent Variable?",
-      options: ["Brand of paper towel", "Amount of water absorbed", "Size of towel", "Room temperature"],
-      correct: 1,
-      explanation: "You measure how much water each towel absorbs — that's the DV." },
-
-    { question: "In the paper towel test, which is a CONTROLLED variable?",
-      options: ["Brand of paper towel", "Amount of water absorbed", "Amount of water poured (same for each)", "The question"],
+      explanation: "You measure how high the ball bounces, so that's the Dependent Variable."
+    },
+    {
+      question: "In that same ball experiment, which is a Controlled Variable?",
+      options: ["Bounce height", "Material of the ball", "Same drop height for all balls", "The question"],
       correct: 2,
-      explanation: "Controlled variables stay the same — the same amount of water is poured for each test." },
+      explanation: "Dropping from the same height keeps the test fair. Drop height is controlled."
+    },
+    {
+      question: "Experiment: 'Does the surface type affect how fast an ice cube melts?' What is the Independent Variable?",
+      options: [
+        "The time it takes to melt",
+        "The size of the ice cube",
+        "The surface type",
+        "The room temperature"
+      ],
+      correct: 2,
+      explanation: "You change the surface (carpet, wood, metal, etc.), so surface type is the Independent Variable."
+    },
+    {
+      question: "In that same ice cube experiment, what is the Dependent Variable?",
+      options: [
+        "The time it takes to melt",
+        "The surface type",
+        "The size of the ice cube",
+        "The room temperature"
+      ],
+      correct: 0,
+      explanation: "You measure how long the ice takes to melt, so melting time is the Dependent Variable."
+    },
+    {
+      question: "Experiment: 'How does the temperature of water affect how fast sugar dissolves?' What is the Independent Variable?",
+      options: [
+        "Amount of sugar",
+        "Type of sugar",
+        "Temperature of the water",
+        "How fast the sugar dissolves"
+      ],
+      correct: 2,
+      explanation: "You change the water temperature, so that's what's being tested."
+    },
 
-    { question: "A student writes: 'The plant with more sunlight grew taller.' Which is the CAUSE in this sentence?",
-      options: ["The height of the plant", "The amount of sunlight", "The type of soil", "The color of the plant"],
+    // --- Comparing to the Pendulum Lab ---
+    {
+      question: "In the Pendulum Lab, what was the Independent Variable?",
+      options: ["Number of swings", "String length", "Washer weight", "The timer"],
       correct: 1,
-      explanation: "The cause is what you changed — the amount of sunlight (the IV). The effect is the height (the DV)." },
+      explanation: "You changed the string length, so it's the Independent Variable."
+    },
+    {
+      question: "In the Pendulum Lab, what was the Dependent Variable?",
+      options: ["Number of swings", "String length", "Washer weight", "Release position"],
+      correct: 0,
+      explanation: "You measured the number of swings in a set time, so swings are the Dependent Variable."
+    },
+    {
+      question: "In the Pendulum Lab, which of these was a Controlled Variable?",
+      options: [
+        "String length",
+        "Number of swings",
+        "Same washer weight for all trials",
+        "The question"
+      ],
+      correct: 2,
+      explanation: "Using the same washer keeps the test fair — washer weight doesn't affect the outcome, so it stays the same."
+    },
+    {
+      question: "Galileo discovered something surprising about pendulums. What did he find?",
+      options: [
+        "Heavier washers make pendulums swing faster",
+        "The weight of the bob doesn't change the period; only the string length does",
+        "Pendulums always stop after 10 swings",
+        "You can't measure a pendulum accurately"
+      ],
+      correct: 1,
+      explanation: "Galileo tested many variables and found that the string length controls the period — not the weight of the bob."
+    },
+
+    // --- Applying to new scenarios ---
+    {
+      question: "You want to test: 'How does the size of a magnet affect how many paper clips it can pick up?' What would you change between trials?",
+      options: [
+        "The number of paper clips",
+        "The size of the magnet",
+        "The type of paper clips",
+        "The surface"
+      ],
+      correct: 1,
+      explanation: "The question is about magnet size, so that's what you change. Everything else stays the same."
+    },
+    {
+      question: "In that magnet experiment, what do you measure?",
+      options: [
+        "The size of the magnet",
+        "The number of paper clips picked up",
+        "The weight of the paper clips",
+        "The temperature"
+      ],
+      correct: 1,
+      explanation: "You count how many paper clips the magnet picks up — that's the Dependent Variable."
+    },
+    {
+      question: "You want to test whether the color of a cup affects how fast water cools. Which of these must be the SAME across all trials?",
+      options: [
+        "The color of the cup",
+        "The starting temperature of the water, the amount of water, and the room temperature",
+        "How fast the water cools",
+        "The color of the water"
+      ],
+      correct: 1,
+      explanation: "Only the color changes. Everything else — water temperature, amount, room conditions — must stay the same."
+    },
+    {
+      question: "A student wants to test: 'How does the type of soil affect how tall a sunflower grows?' Which of these should NOT be changed?",
+      options: [
+        "Type of soil",
+        "Amount of water, sunlight, and size of pot",
+        "The height of the plant",
+        "The question being tested"
+      ],
+      correct: 1,
+      explanation: "Only soil type should change. Water, sunlight, and pot size all stay the same."
+    },
+
+    // --- Reasoning and critique ---
+    {
+      question: "A student says: 'I'll change the amount of water AND the amount of sunlight and see how the plant grows.' What's the problem?",
+      options: [
+        "Nothing — more changes gives better data",
+        "Changing two things at once means you won't know which one caused the result",
+        "You can't grow plants with sunlight",
+        "Water doesn't affect plants"
+      ],
+      correct: 1,
+      explanation: "A good experiment changes only ONE thing at a time. Changing two makes the results ambiguous."
+    },
+    {
+      question: "A student tests: 'How does the shape of a paper airplane affect how far it flies?' They use a DIFFERENT type of paper for each plane. What's the problem?",
+      options: [
+        "Nothing — paper type doesn't matter",
+        "They changed two variables (shape AND paper type), so they can't tell which caused the flight difference",
+        "Paper airplanes don't fly",
+        "They should have used lighter paper"
+      ],
+      correct: 1,
+      explanation: "If paper type also changes, you can't isolate the effect of shape. Paper type should have been a controlled variable."
+    },
+    {
+      question: "Two students do the same experiment but get different results. The first changed the drop height. The second changed the drop height AND the ball. Whose results are more reliable?",
+      options: [
+        "The first student's — they only changed one variable",
+        "The second student's — they changed more",
+        "Both are equally reliable",
+        "Neither is reliable"
+      ],
+      correct: 0,
+      explanation: "The first student followed the rule of one Independent Variable. Their result is cleaner because only one thing could have caused the difference."
+    }
   ],
 };
