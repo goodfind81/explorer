@@ -39,10 +39,8 @@ export async function renderHomeworkView(container, config) {
     return;
   }
 
-  // Make sure we have at least 1 session left
+  // Already mastered — nothing to do here
   if (current.mastered) {
-    // Already mastered — nothing to do here. This shouldn't
-    // normally happen because we advance immediately, but be safe.
     container.innerHTML = `
       <div class="dh-sheet">
         <div class="dh-header">
@@ -59,7 +57,7 @@ export async function renderHomeworkView(container, config) {
     return;
   }
 
-  // Generate questions for this skill
+  // Look up chapter and skill config
   const chapter = chapters.find(c => c.id === current.chapterId);
   if (!chapter) {
     container.innerHTML = `<div class="empty-state">Chapter not found.</div>`;
@@ -77,11 +75,8 @@ export async function renderHomeworkView(container, config) {
     return;
   }
 
-  const questions = [];
-  for (let i = 0; i < QUESTIONS_PER_SHEET; i++) {
-    const q = gen({ ...(skillMeta.args || {}), multipleChoice: false });
-    questions.push(q);
-  }
+  // Generate 15 unique questions (retry on duplicates)
+  const questions = generateUniqueQuestions(gen, skillMeta.args || {}, QUESTIONS_PER_SHEET);
 
   // Set up state
   const state = {
@@ -98,6 +93,37 @@ export async function renderHomeworkView(container, config) {
 
   // Render the sheet
   renderSheet(container, state);
+}
+
+/* ==========================================================
+   Question dedupe helper
+   Generates `count` unique questions.
+   Retries up to 5× per question to avoid duplicates.
+   ========================================================== */
+
+function generateUniqueQuestions(gen, args, count) {
+  const questions = [];
+  const seenText = new Set();
+
+  for (let i = 0; i < count; i++) {
+    let attempt = 0;
+    let q;
+    let key;
+
+    // Try up to 5 times to generate a unique question
+    while (attempt < 5) {
+      q = gen({ ...args, multipleChoice: false });
+      key = q.question.trim().toLowerCase();
+      if (!seenText.has(key)) break;
+      attempt++;
+    }
+
+    // If we still got a duplicate after 5 tries, accept it
+    // (extremely unlikely with our generators, but safe fallback)
+    seenText.add(key);
+    questions.push(q);
+  }
+  return questions;
 }
 
 /* ==========================================================
