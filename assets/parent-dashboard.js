@@ -362,27 +362,39 @@ async function renderSkillMastery(mainEl, subjects) {
   card.innerHTML = html;
   mainEl.appendChild(card);
     // Wire up "Set as current" buttons
+  // Wire up "Set as current" buttons
   card.querySelectorAll(".set-current-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       const subjectId = btn.dataset.subject;
       const chapterId = btn.dataset.chapter;
       const skillKey = btn.dataset.skill;
 
-      const chapter = subj.chapters.find(c => c.id === chapterId);
+      // Look up subject from the outer scope
+      const subject = subjects[subjectId];
+      if (!subject) {
+        alert("Could not find subject: " + subjectId);
+        return;
+      }
+
+      const chapter = subject.chapters.find(c => c.id === chapterId);
       const skill = chapter && chapter.skills
         ? chapter.skills.find(s => s.key === skillKey)
         : null;
 
-      const confirmMsg = skill
-        ? `Set "${skill.label}" as the current skill for ${subj.name}?\n\nThis will reset progress to 0/5 on that skill.`
-        : "Set this as the current skill?";
+      const label = skill ? skill.label : skillKey;
+      const confirmMsg = `Set "${label}" as the current skill for ${subject.name}?\n\nThis will reset progress to 0/5 on that skill.`;
 
       if (!confirm(confirmMsg)) return;
 
-      const { setCurrentSkill } = await import("./skill-tracker.js");
-      await setCurrentSkill(subjectId, chapterId, skillKey);
-      alert("Done! Reload the parent dashboard to see the update.");
-      renderParentDashboard(mainEl, subjects);
+      try {
+        const { setCurrentSkill } = await import("./skill-tracker.js");
+        await setCurrentSkill(subjectId, chapterId, skillKey);
+        alert(`Done! "${label}" is now the current skill.`);
+        renderParentDashboard(mainEl, subjects);
+      } catch (err) {
+        alert("Error setting skill: " + err.message);
+        console.error(err);
+      }
     });
   });
 }
