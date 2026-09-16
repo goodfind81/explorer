@@ -728,9 +728,9 @@ tr:nth-child(even) { background: #F8F9FA; }
   white-space: pre-wrap;
 }
 
-/* ---- Problems list ---- */
 .dh-problems {
   margin: 20px 0;
+  max-width: 720px;   /* keep the problem list narrow */
 }
 .dh-problems-title {
   font-size: 1.1em;
@@ -742,36 +742,35 @@ tr:nth-child(even) { background: #F8F9FA; }
   list-style: none;
   padding: 0;
   margin: 0;
+  counter-reset: dh-prob;
 }
 .dh-problem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 10px;
+  padding: 8px 0;
   border-bottom: 1px solid #F1F3F5;
 }
 .dh-problem:last-child { border-bottom: none; }
-
 .dh-problem::before {
   content: counter(dh-prob) ".";
   counter-increment: dh-prob;
   font-weight: bold;
   color: var(--text-muted);
-  min-width: 28px;
+  min-width: 26px;
   text-align: right;
+  flex-shrink: 0;
 }
-.dh-problem-list {
-  counter-reset: dh-prob;
-}
-
 .dh-q-text {
-  flex: 1;
   font-size: 1em;
   color: var(--text-dark);
+  /* Let the question take as much space as it needs,
+     but not push the input all the way to the right */
+  flex: 0 1 auto;
+  margin-right: 4px;
 }
-
 .dh-input {
-  width: 140px;
+  width: 120px;
   padding: 8px 12px;
   border: 2px solid #D6E4FF;
   border-radius: 8px;
@@ -780,6 +779,9 @@ tr:nth-child(even) { background: #F8F9FA; }
   background: #FAFBFF;
   color: var(--text-dark);
   transition: all 0.15s;
+  flex-shrink: 0;
+  /* Push the input to the immediate right of the question text */
+  margin-left: auto;
 }
 .dh-input:focus {
   outline: none;
@@ -787,10 +789,7 @@ tr:nth-child(even) { background: #F8F9FA; }
   background: #FFFFFF;
   box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
 }
-.dh-input:disabled {
-  background: #F8F9FA;
-  cursor: default;
-}
+.dh-input:disabled { background: #F8F9FA; cursor: default; }
 .dh-input.dh-correct {
   background: #D4EDDA;
   border-color: #28A745;
@@ -802,6 +801,7 @@ tr:nth-child(even) { background: #F8F9FA; }
   border-color: #DC3545;
   color: #721C24;
 }
+
 
 /* Mobile: stack text + input */
 @media (max-width: 600px) {
