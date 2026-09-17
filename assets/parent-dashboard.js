@@ -18,6 +18,17 @@
 
 import { Storage } from "./storage.js";
 import { getSession, isParent, renderRoleIndicator } from "./auth.js";
+import {
+  getPendingRedemptions,
+  getAllRedemptions,
+  approveRedemption,
+  denyRedemption,
+  getBalance,
+  getTotalEarned,
+  getTotalRedeemed,
+  getRecentLedger,
+  getRateInfo
+} from "./points.js";
 
 const PASSING_THRESHOLD = 85;
 const SESSIONS_REQUIRED = 5;
@@ -146,12 +157,13 @@ export async function renderParentDashboard(mainEl, subjects) {
       No attempts yet. Once practice starts, results show up here.
     </div>`;
     mainEl.appendChild(empty);
-    // Still show skill mastery so parents can set the current skill
+    await renderRewardsSection(mainEl, subjects);
     await renderSkillMastery(mainEl, subjects);
     return;
   }
 
   renderOverallStats(mainEl, attempts);
+  await renderRewardsSection(mainEl, subjects);
   await renderSkillMastery(mainEl, subjects);
   await renderHomeworkHistory(mainEl, subjects, attempts);
   renderChapterPerformance(mainEl, attempts, subjects);
@@ -689,4 +701,170 @@ function renderMostMissed(mainEl, attempts) {
 
   card.innerHTML = html;
   mainEl.appendChild(card);
+}
+
+/* ==========================================================
+   7. Rewards section (points + redemptions)
+   ========================================================== */
+
+async function renderRewardsSection(mainEl, subjects) {
+  const rate = getRateInfo();
+
+  let balance = 0;
+  let totalEarned = 0;
+  let redeemed = { dollars: 0, points: 0 };
+  let pending = [];
+  let allRedemptions = [];
+  let ledger = [];
+
+  try {
+    [balance, totalEarned, redeemed, pending, allRedemptions, ledger] = await Promise.all([
+      getBalance(),
+      getTotalEarned(),
+      getTotalRedeemed(),
+      getPendingRedemptions(),
+      getAllRedemptions(20),
+      getRecentLedger(20)
+    ]);
+  } catch (err) {
+    console.warn("Could not load rewards data:", err);
+  }
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.borderLeftColor = "var(--accent-green)";
+
+  const dollars = (balance / rate.pointsPerDollar).toFixed(2);
+
+  let html = `
+    <h3>💰 Rewards & Points</h3>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-value">${balance}</div>
+        <div class="stat-label">Current Balance</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">${totalEarned}</div>
+        <div class="stat-label">Total Earned</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">$${redeemed.dollars.toFixed(2)}</div>
+        <div class="stat-label">Total Paid Out</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">${rate.pointsPerDollar} = $1</div>
+        <div class="stat-label">Redemption Rate</div>
+      </div>
+    </div>
+
+    <div style="background:#FAFBFF; border-radius:12px; padding:14px 18px; margin: 16px 0; border-left:4px solid var(--primary-blue);">
+      <strong>💡 ${balance} points ≈ $${dollars}</strong>
+      ${balance >= rate.minRedemptionPoints
+        ? `<span style="color:#666; margin-left:10px;">Ready to cash out</span>`
+        : `<span style="color:#666; margin-left:10px;">${rate.minRedemptionPoints - balance} more to reach minimum</span>`}
+    </div>
+  `;
+
+  // ---------- Pending redemptions ----------
+  if (pending.length > 0) {
+    html += `
+      <h4 style="color:var(--accent-orange); margin: 20px 0 12px 0;">🔔 Pending Payout Requests</h4>
+    `;
+    pending.forEach(red => {
+      html += `
+        <div class="redemption-pending" data-id="${red.id}">
+          <div class="redemption-info">
+            <div class="redemption-amount">$${parseFloat(red.dollars).toFixed(2)}</div>
+            <div class="redemption-detail">${red.points} points • requested ${formatDate(red.requested_at)}</div>
+          </div>
+          <div class="redemption-actions">
+            <button class="redemption-approve" data-action="approve" data-id="${red.id}">✓ Approve</button>
+            <button class="redemption-deny" data-action="deny" data-id="${red.id}">✗ Deny</button>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    html += `
+      <h4 style="color:var(--text-muted); margin: 20px 0 12px 0;">🔔 Pending Payout Requests</h4>
+      <p style="color:#888; font-style:italic;">No pending requests.</p>
+    `;
+  }
+
+  // ---------- Redemption history ----------
+  const decided = allRedemptions.filter(r => r.status !== "pending").slice(0, 10);
+  if (decided.length > 0) {
+    html += `
+      <h4 style="color:var(--primary-purple); margin: 24px 0 12px 0;">📜 Payout History</h4>
+      <table class="data-table">
+        <thead><tr><th>When</th><th>Amount</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>
+    `;
+    decided.forEach(red => {
+      const statusClass = red.status === "approved" ? "redemption-status-approved" : "redemption-status-denied";
+      html += `<tr>
+        <td>${formatDate(red.decided_at || red.requested_at)}</td>
+        <td>$${parseFloat(red.dollars).toFixed(2)}</td>
+        <td><span class="${statusClass}">${red.status}</span></td>
+        <td>${red.parent_note || "—"}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  // ---------- Recent points ledger ----------
+  if (ledger.length > 0) {
+    html += `
+      <h4 style="color:var(--primary-purple); margin: 24px 0 12px 0;">💰 Recent Point Activity</h4>
+      <table class="data-table">
+        <thead><tr><th>When</th><th>Reason</th><th>Points</th></tr></thead>
+        <tbody>
+    `;
+    ledger.forEach(r => {
+      const sign = r.points > 0 ? "+" : "";
+      const cls = r.points > 0 ? "points-positive" : "points-negative";
+      html += `<tr>
+        <td>${formatDate(r.timestamp)}</td>
+        <td>${r.reason || r.type}</td>
+        <td class="${cls}"><strong>${sign}${r.points}</strong></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  card.innerHTML = html;
+  mainEl.appendChild(card);
+
+  // ---------- Wire up approve/deny buttons ----------
+  card.querySelectorAll(".redemption-approve").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const note = prompt("Optional note for this approval:", "") || null;
+      try {
+        await approveRedemption(id, note);
+        alert("✅ Approved. Points deducted.");
+        renderParentDashboard(mainEl, subjects || {});
+        // Simpler: reload the section
+        //location.reload();
+      } catch (err) {
+        alert("Could not approve: " + err.message);
+      }
+    });
+  });
+
+  card.querySelectorAll(".redemption-deny").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const note = prompt("Reason for denying (shown to kid):", "") || null;
+      if (!confirm("Deny this payout request?")) return;
+      try {
+        await denyRedemption(id, note);
+        alert("❌ Denied. No points deducted.");
+        renderParentDashboard(mainEl, subjects);
+      } catch (err) {
+        alert("Could not deny: " + err.message);
+      }
+    });
+  });
 }

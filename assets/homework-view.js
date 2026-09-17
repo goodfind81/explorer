@@ -4,15 +4,13 @@
 
    Renders 15 fresh questions for the CURRENT skill of a
    subject, gives the student input boxes, scores on demand,
-   and saves the attempt.
+   saves the attempt, awards points.
 
-   Uses skill-tracker.js to know which skill is current and
-   to record the result. Uses question-generators.js to build
-   the questions.
-
-   Unlike the old daily-homework.js, this is not tied to a
-   chapter's daily schedule. It's one sheet — today's sheet —
-   for whatever skill the tracker says is active.
+   Celebrations:
+     - SKILL MASTERED (5/5 sessions) → purple celebration
+     - PERFECT SCORE (100% on any session) → gold celebration
+     - If both apply → SKILL MASTERED wins (bigger milestone)
+     - Otherwise → standard results with points summary
    ========================================================== */
 
 import * as Generators from "./question-generators.js";
@@ -21,6 +19,12 @@ import {
   getCurrentSkill,
   recordHomeworkAttempt
 } from "./skill-tracker.js";
+import {
+  awardPointsForAttempt,
+  maybeAwardStreak,
+  getCurrentStreak,
+  getBalance
+} from "./points.js";
 
 const PASSING_THRESHOLD = 85;
 const QUESTIONS_PER_SHEET = 15;
@@ -32,14 +36,12 @@ const QUESTIONS_PER_SHEET = 15;
 export async function renderHomeworkView(container, config) {
   const { subject, chapters } = config;
 
-  // Which skill are we doing?
   const current = await getCurrentSkill(subject.id, chapters);
   if (!current) {
     container.innerHTML = `<div class="empty-state">No skills configured yet for ${subject.name}.</div>`;
     return;
   }
 
-  // Already mastered — nothing to do here
   if (current.mastered) {
     container.innerHTML = `
       <div class="dh-sheet">
@@ -57,7 +59,6 @@ export async function renderHomeworkView(container, config) {
     return;
   }
 
-  // Look up chapter and skill config
   const chapter = chapters.find(c => c.id === current.chapterId);
   if (!chapter) {
     container.innerHTML = `<div class="empty-state">Chapter not found.</div>`;
@@ -75,10 +76,10 @@ export async function renderHomeworkView(container, config) {
     return;
   }
 
-  // Generate 15 unique questions (retry on duplicates)
   const questions = generateUniqueQuestions(gen, skillMeta.args || {}, QUESTIONS_PER_SHEET);
 
-  // Set up state
+  const attemptNumber = await getAttemptsTodayForSkill(subject.id, current.skillKey);
+
   const state = {
     subject,
     chapters,
@@ -88,17 +89,30 @@ export async function renderHomeworkView(container, config) {
     questions,
     userAnswers: new Array(questions.length).fill(""),
     startTime: Date.now(),
-    scored: false
+    scored: false,
+    attemptNumber: attemptNumber + 1
   };
 
-  // Render the sheet
   renderSheet(container, state);
 }
 
+async function getAttemptsTodayForSkill(subjectId, skillKey) {
+  try {
+    const all = await Storage.getAllAttempts();
+    const todayISO = new Date().toISOString().slice(0, 10);
+    return all.filter(a =>
+      a.type === "homework" &&
+      a.subject === subjectId &&
+      a.skillKey === skillKey &&
+      a.timestamp.slice(0, 10) === todayISO
+    ).length;
+  } catch (err) {
+    return 0;
+  }
+}
+
 /* ==========================================================
-   Question dedupe helper
-   Generates `count` unique questions.
-   Retries up to 5× per question to avoid duplicates.
+   Question dedupe
    ========================================================== */
 
 function generateUniqueQuestions(gen, args, count) {
@@ -110,7 +124,6 @@ function generateUniqueQuestions(gen, args, count) {
     let q;
     let key;
 
-    // Try up to 5 times to generate a unique question
     while (attempt < 5) {
       q = gen({ ...args, multipleChoice: false });
       key = q.question.trim().toLowerCase();
@@ -118,8 +131,6 @@ function generateUniqueQuestions(gen, args, count) {
       attempt++;
     }
 
-    // If we still got a duplicate after 5 tries, accept it
-    // (extremely unlikely with our generators, but safe fallback)
     seenText.add(key);
     questions.push(q);
   }
@@ -131,14 +142,19 @@ function generateUniqueQuestions(gen, args, count) {
    ========================================================== */
 
 function renderSheet(container, state) {
-  const { subject, current, skillMeta } = state;
+  const { subject, current, skillMeta, attemptNumber } = state;
 
-  const sessionsLeft = 5 - current.sessionsPassed;
   const progressLabel = current.mastered
     ? "Skill Mastered"
     : `Progress: ${current.sessionsPassed} / 5 sessions passed`;
 
-  const headerSub = `Homework session ${current.sessionsPassed + 1} of 5`;
+  const attemptLabel = attemptNumber === 1
+    ? "First attempt"
+    : attemptNumber === 2
+      ? "Retry (0.5× points)"
+      : `Retry #${attemptNumber - 1} (0.25× points)`;
+
+  const headerSub = `Homework session ${current.sessionsPassed + 1} of 5 · ${attemptLabel}`;
 
   container.innerHTML = `
     <div class="dh-sheet">
@@ -193,7 +209,6 @@ function renderSheet(container, state) {
     </div>
   `;
 
-  // Wire up inputs
   container.querySelectorAll(".dh-input").forEach(input => {
     input.addEventListener("input", (e) => {
       const idx = parseInt(e.target.dataset.index);
@@ -214,11 +229,9 @@ function renderSheet(container, state) {
     checkAnswers(container, state);
   });
   container.querySelector("#dhRetryBtn").addEventListener("click", () => {
-    // Reload the page — a fresh sheet with new questions
     renderHomeworkView(container, { subject: state.subject, chapters: state.chapters });
   });
 
-  // Focus first input
   const first = container.querySelector(".dh-input");
   if (first) first.focus();
 }
@@ -234,14 +247,14 @@ function starsInline(n) {
 }
 
 /* ==========================================================
-   Answer checking + scoring
+   Answer checking + scoring + points
    ========================================================== */
 
 async function checkAnswers(container, state) {
   if (state.scored) return;
   state.scored = true;
 
-  const { questions, userAnswers, current, subject, chapters } = state;
+  const { questions, userAnswers, current, subject, chapters, attemptNumber } = state;
   let correctCount = 0;
   const missed = [];
 
@@ -272,7 +285,6 @@ async function checkAnswers(container, state) {
   const passed = percent >= PASSING_THRESHOLD;
   const duration = Math.round((Date.now() - state.startTime) / 1000);
 
-  // Save attempt
   const attempt = {
     id: `hw-${subject.id}-${Date.now()}`,
     type: "homework",
@@ -303,7 +315,6 @@ async function checkAnswers(container, state) {
     console.warn("Could not save homework attempt:", err);
   }
 
-  // Update skill tracker
   let trackerResult = null;
   try {
     trackerResult = await recordHomeworkAttempt(subject.id, chapters, attempt);
@@ -311,33 +322,113 @@ async function checkAnswers(container, state) {
     console.warn("Could not update skill tracker:", err);
   }
 
-  // Render results
+  let pointsResult = null;
+  try {
+    pointsResult = await awardPointsIfBest(subject, current.skillKey, attempt, {
+      attemptNumber: attemptNumber,
+      advanced: trackerResult && trackerResult.advanced
+    });
+  } catch (err) {
+    console.warn("Could not award points:", err);
+  }
+
+  let streakResult = null;
+  try {
+    const streak = await getCurrentStreak();
+    if (streak >= 2) {
+      streakResult = await maybeAwardStreak(new Date().toISOString().slice(0, 10), streak);
+    }
+  } catch (err) {
+    console.warn("Streak bonus failed:", err);
+  }
+
+  let balance = 0;
+  try {
+    balance = await getBalance();
+  } catch (err) {}
+
   renderResults(container, state, {
     correctCount,
     total,
     percent,
     passed,
     missed,
-    trackerResult
+    trackerResult,
+    pointsResult,
+    streakResult,
+    balance
   });
 }
 
-function renderResults(container, state, result) {
-  const resultsEl = container.querySelector("#dhResults");
-  const { passed, correctCount, total, percent, missed, trackerResult } = result;
+/* ==========================================================
+   Best-attempt-of-the-day
+   ========================================================== */
 
+async function awardPointsIfBest(subject, skillKey, attempt, context) {
+  const all = await Storage.getAllAttempts();
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const previousToday = all.filter(a =>
+    a.type === "homework" &&
+    a.subject === subject.id &&
+    a.skillKey === skillKey &&
+    a.timestamp.slice(0, 10) === todayISO &&
+    a.id !== attempt.id
+  );
+
+  const earned = await awardPointsForAttempt(attempt, context);
+  const thisPoints = earned.points;
+
+  if (thisPoints <= 0) {
+    return { awarded: 0, reason: "No points earned" };
+  }
+
+  if (previousToday.length === 0) {
+    return { awarded: thisPoints, ledgerRow: earned.ledgerRow, breakdown: earned.breakdown };
+  }
+
+  const prevBest = previousToday.reduce(
+    (max, a) => a.percent > max.percent ? a : max,
+    previousToday[0]
+  );
+
+  if (attempt.percent > prevBest.percent) {
+    return { awarded: thisPoints, ledgerRow: earned.ledgerRow, breakdown: earned.breakdown };
+  } else {
+    return { awarded: 0, reason: "A previous attempt today scored higher" };
+  }
+}
+
+/* ==========================================================
+   Results rendering
+   ========================================================== */
+
+function renderResults(container, state, result) {
+  const {
+    correctCount, total, percent, passed, missed,
+    trackerResult, pointsResult, streakResult, balance
+  } = result;
+
+  const advanced = trackerResult && trackerResult.advanced;
+  const isPerfect = percent === 100;
+
+  // ---------- Priority: Skill Mastery > Perfect Score > Standard ----------
+  if (advanced && passed) {
+    renderSkillMasteredCelebration(container, state, result);
+    return;
+  }
+  if (isPerfect && passed) {
+    renderPerfectScoreCelebration(container, state, result);
+    return;
+  }
+
+  // ---------- Standard results ----------
   let headlineEmoji = passed ? "🌟" : "📖";
   let headlineText = passed
     ? `You passed! ${correctCount} / ${total} (${percent}%)`
     : `Not yet. ${correctCount} / ${total} (${percent}%)`;
   let subText = "";
 
-  if (passed && trackerResult && trackerResult.advanced && trackerResult.newSkill) {
-    // Skill mastered, advancing
-    subText = `🎉 Skill mastered! Moving on to: <strong>${trackerResult.newSkill.skillLabel}</strong>`;
-    headlineEmoji = "🏆";
-    headlineText = `Skill mastered! ${correctCount} / ${total} (${percent}%)`;
-  } else if (passed) {
+  if (passed) {
     const newPassed = (state.current.sessionsPassed || 0) + 1;
     subText = `Session ${newPassed} of 5 passed. ${5 - newPassed} more to master this skill.`;
   } else {
@@ -351,6 +442,16 @@ function renderResults(container, state, result) {
       <div class="dh-score-sub">${subText}</div>
     </div>
   `;
+
+  if (pointsResult && pointsResult.awarded > 0) {
+    html += renderPointsBox(pointsResult, streakResult, balance);
+  } else if (pointsResult && pointsResult.reason) {
+    html += `
+      <div class="dh-points-box dh-points-none">
+        <div class="dh-points-text">No new points — ${pointsResult.reason}</div>
+      </div>
+    `;
+  }
 
   if (missed.length > 0) {
     html += `
@@ -368,23 +469,13 @@ function renderResults(container, state, result) {
     `;
   }
 
-  // Action buttons
-  if (passed && trackerResult && trackerResult.advanced) {
-    // Skill mastered — offer a button to go home
-    html += `
-      <div class="dh-actions">
-        <button class="dh-check-btn" onclick="App.goHome()">🏠 Back to Home</button>
-      </div>
-    `;
-  } else if (!passed) {
-    // Failed — offer retry
+  if (!passed) {
     html += `
       <div class="dh-actions">
         <button class="dh-retry-btn" id="dhRetryBtn2">Try New Questions 🔄</button>
       </div>
     `;
   } else {
-    // Passed but skill not yet mastered
     html += `
       <div class="dh-actions">
         <button class="dh-check-btn" onclick="App.goHome()">🏠 Back to Home</button>
@@ -393,10 +484,10 @@ function renderResults(container, state, result) {
     `;
   }
 
+  const resultsEl = container.querySelector("#dhResults");
   resultsEl.innerHTML = html;
   resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  // Wire up retry button
   const retryBtn = resultsEl.querySelector("#dhRetryBtn2") || resultsEl.querySelector("#dhMoreBtn");
   if (retryBtn) {
     retryBtn.addEventListener("click", () => {
@@ -406,7 +497,139 @@ function renderResults(container, state, result) {
 }
 
 /* ==========================================================
-   Answer matching (loose — handles numbers, commas, spacing)
+   Skill Mastered celebration (purple, biggest reward)
+   ========================================================== */
+
+function renderSkillMasteredCelebration(container, state, result) {
+  const { skillMeta } = state;
+  const { correctCount, total, percent, pointsResult, streakResult, balance } = result;
+
+  const resultsEl = container.querySelector("#dhResults");
+
+  const confettiPieces = Array.from({ length: 40 }, (_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 1.5;
+    const emoji = ["🎉", "⭐", "✨", "🎊", "🏆"][i % 5];
+    return `<span class="confetti" style="left:${left}%; animation-delay:${delay}s;">${emoji}</span>`;
+  }).join("");
+
+  let html = `
+    <div class="dh-celebration">
+      <div class="dh-confetti-container">${confettiPieces}</div>
+
+      <div class="dh-celebration-content">
+        <div class="dh-celebration-emoji">🏆</div>
+        <div class="dh-celebration-title">SKILL MASTERED!</div>
+        <div class="dh-celebration-skill">${skillMeta.label}</div>
+        <div class="dh-celebration-sub">You passed 5 sessions in a row!</div>
+
+        <div class="dh-celebration-stats">
+          <div class="dh-celebration-stat">
+            <div class="dh-celebration-stat-value">${correctCount}/${total}</div>
+            <div class="dh-celebration-stat-label">This attempt (${percent}%)</div>
+          </div>
+        </div>
+
+        ${renderPointsBox(pointsResult, streakResult, balance, true)}
+
+        <div class="dh-celebration-actions">
+          <button class="dh-check-btn" onclick="App.goHome()">🏠 Back to Home</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  resultsEl.innerHTML = html;
+  resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ==========================================================
+   Perfect Score celebration (gold, second-biggest reward)
+   ========================================================== */
+
+function renderPerfectScoreCelebration(container, state, result) {
+  const { skillMeta } = state;
+  const { correctCount, total, percent, pointsResult, streakResult, balance } = result;
+
+  const resultsEl = container.querySelector("#dhResults");
+
+  const confettiPieces = Array.from({ length: 30 }, (_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 1.5;
+    const emoji = ["⭐", "✨", "🌟", "🎉", "💫"][i % 5];
+    return `<span class="confetti" style="left:${left}%; animation-delay:${delay}s;">${emoji}</span>`;
+  }).join("");
+
+  let html = `
+    <div class="dh-celebration dh-celebration-perfect">
+      <div class="dh-confetti-container">${confettiPieces}</div>
+
+      <div class="dh-celebration-content dh-celebration-content-gold">
+        <div class="dh-celebration-emoji">⭐</div>
+        <div class="dh-celebration-title dh-celebration-title-gold">PERFECT SCORE!</div>
+        <div class="dh-celebration-skill">${skillMeta.label}</div>
+        <div class="dh-celebration-sub">You got all ${total} right — 100%!</div>
+
+        ${renderPointsBox(pointsResult, streakResult, balance, true)}
+
+        <div class="dh-celebration-actions">
+          <button class="dh-check-btn" onclick="App.goHome()">🏠 Back to Home</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  resultsEl.innerHTML = html;
+  resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ==========================================================
+   Points box
+   ========================================================== */
+
+function renderPointsBox(pointsResult, streakResult, balance, celebrated = false) {
+  const awarded = pointsResult ? pointsResult.awarded : 0;
+  const breakdown = pointsResult && pointsResult.breakdown ? pointsResult.breakdown : null;
+
+  let html = `
+    <div class="dh-points-box">
+      <div class="dh-points-header">
+        <span class="dh-points-emoji">💰</span>
+        <span class="dh-points-title">You earned <strong>${awarded} points</strong>!</span>
+      </div>
+  `;
+
+  if (breakdown) {
+    html += `<div class="dh-points-breakdown">`;
+    if (breakdown.correct) html += `<div>• ${breakdown.correct} for correct answers</div>`;
+    if (breakdown.bonus) html += `<div>• ${breakdown.bonus} pass bonus</div>`;
+    if (breakdown.perfectBonus) html += `<div>• ${breakdown.perfectBonus} perfect bonus</div>`;
+    html += `</div>`;
+  }
+
+  if (streakResult && streakResult.points) {
+    html += `
+      <div class="dh-points-streak">
+        🔥 +${streakResult.points} streak bonus!
+      </div>
+    `;
+  }
+
+  if (typeof balance === "number" && balance > 0) {
+    const dollars = (balance / 100).toFixed(2);
+    html += `
+      <div class="dh-points-balance">
+        💰 Balance: <strong>${balance} points</strong> (~$${dollars})
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+/* ==========================================================
+   Answer matching
    ========================================================== */
 
 function answersMatch(userAnswer, correctAnswer) {

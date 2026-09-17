@@ -1,15 +1,24 @@
 /* ==========================================================
    quiz-engine.js
-   Reusable quiz renderer. One engine, three modes:
-     - "mini"    → 5 questions from one chapter's miniCheck bank
-     - "chapter" → 15 questions from one chapter's chapterQuiz bank
-     - "final"   → 20 questions mixed across all chapters
-   Handles: shuffling, feedback, missed-question tracking,
-            auto-save to Storage, no-repeat across last 5 runs
-            (final exam only).
+   Reusable quiz renderer for mini-checks and chapter quizzes.
+
+   Integrates with session-lock.js — each (subject, chapter, type)
+   has one session per calendar day.
+
+   Celebrations:
+     - Chapter quiz at 100% → Perfect Score celebration (gold)
+     - Mini-check → standard summary (no celebration)
+     - Final exam → standard summary with retry option
    ========================================================== */
 
 import { Storage } from "./storage.js";
+import {
+  getLock,
+  createLock,
+  saveAnswer,
+  saveProgress,
+  completeLock
+} from "./session-lock.js";
 
 const HISTORY_META_KEY = "finalExamHistory";
 const HISTORY_LENGTH = 5;
@@ -37,20 +46,11 @@ function pickFreshQuizQuestions(pool, size, historyIds) {
   return shuffle(chosen);
 }
 
+/* ==========================================================
+   QuizEngine class
+   ========================================================== */
+
 export class QuizEngine {
-  /**
-   * @param {HTMLElement} container - where to render the quiz
-   * @param {Object} config
-   *   mode: "mini" | "chapter" | "final"
-   *   subject: subject id (e.g., "science")
-   *   subjectName: display name (e.g., "Science")
-   *   chapter: chapter id (e.g., "chapter-01-scientific-method") — required for mini/chapter
-   *   chapterName: display name for the chapter
-   *   pool: array of question objects { question, options, correct, explanation }
-   *   count: how many questions to show
-   *   allChapters: array of { chapter, chapterName, chapterQuiz } — used for final exam
-   *   onComplete: callback(attemptObject)
-   */
   constructor(container, config) {
     this.container = container;
     this.config = config;
@@ -60,14 +60,48 @@ export class QuizEngine {
     this.answered = false;
     this.missed = [];
     this.startTime = 0;
+    this.lock = null;
+    this.reviewMode = false;
+    this.reviewData = null;
   }
 
   async start() {
+    const { mode, subject, chapter } = this.config;
+
+    if (mode !== "final") {
+      const existingLock = getLock(subject, chapter, mode);
+      if (existingLock) {
+        this.lock = existingLock;
+        this.questions = existingLock.questions;
+        this.currentIndex = existingLock.currentIndex || 0;
+
+        if (existingLock.completed) {
+          this.reviewMode = true;
+          this.reviewData = {
+            score: existingLock.score,
+            percent: existingLock.percent,
+            userAnswers: existingLock.userAnswers
+          };
+          this._renderCompletedView();
+          return;
+        }
+
+        this.startTime = existingLock.startedAt || Date.now();
+        this._renderQuestion();
+        return;
+      }
+    }
+
     this.questions = await this._pickQuestions();
     if (this.questions.length === 0) {
       this.container.innerHTML = `<div class="empty-state">No questions available for this quiz yet.</div>`;
       return;
     }
+
+    if (mode !== "final") {
+      this.lock = createLock(subject, chapter, mode, this.questions);
+    }
+
     this.currentIndex = 0;
     this.score = 0;
     this.answered = false;
@@ -80,7 +114,6 @@ export class QuizEngine {
     const { mode, pool, count, allChapters } = this.config;
 
     if (mode === "final") {
-      // Combine all chapter quiz banks, apply no-repeat across last 5 runs
       let combined = [];
       allChapters.forEach(ch => {
         ch.chapterQuiz.forEach(q => {
@@ -88,24 +121,26 @@ export class QuizEngine {
         });
       });
       const history = (await Storage.getMeta(HISTORY_META_KEY)) || [];
-      const historyIds = history.flat();
+      const historyIds = history.flat ? history.flat() : (Array.isArray(history) ? history : []);
       const chosen = pickFreshQuizQuestions(combined, count, historyIds);
 
-      // Save this run's IDs to history
       const newRun = chosen.map(q => q.id);
-      const updatedHistory = [newRun, ...history].slice(0, HISTORY_LENGTH);
+      const updatedHistory = [newRun, ...(Array.isArray(history) ? history : [])].slice(0, HISTORY_LENGTH);
       await Storage.setMeta(HISTORY_META_KEY, updatedHistory);
 
       return chosen;
     }
 
-    // mini or chapter — just shuffle and take `count`
     return shuffle(pool).slice(0, count);
   }
 
+  /* ==========================================================
+     Rendering a question
+     ========================================================== */
+
   _renderQuestion() {
     if (this.currentIndex >= this.questions.length) {
-      this._renderSummary();
+      this._finishQuiz();
       return;
     }
 
@@ -113,6 +148,10 @@ export class QuizEngine {
     const correctText = q.options[q.correct];
     const shuffledOpts = shuffle(q.options);
     this.answered = false;
+
+    const priorAnswer = this.lock && this.lock.userAnswers
+      ? this.lock.userAnswers[this.currentIndex]
+      : null;
 
     const pct = Math.round((this.currentIndex / this.questions.length) * 100);
 
@@ -160,12 +199,30 @@ export class QuizEngine {
           });
         }
 
+        if (this.lock && this.config.mode !== "final") {
+          saveAnswer(
+            this.config.subject,
+            this.config.chapter,
+            this.config.mode,
+            this.currentIndex,
+            picked
+          );
+        }
+
         const nextBtn = document.createElement("button");
         nextBtn.className = "quiz-next";
         nextBtn.textContent = this.currentIndex === this.questions.length - 1
           ? "See Results →" : "Next Question →";
         nextBtn.addEventListener("click", () => {
           this.currentIndex++;
+          if (this.lock && this.config.mode !== "final") {
+            saveProgress(
+              this.config.subject,
+              this.config.chapter,
+              this.config.mode,
+              this.currentIndex
+            );
+          }
           this._renderQuestion();
         });
         this.container.appendChild(nextBtn);
@@ -174,19 +231,25 @@ export class QuizEngine {
     });
   }
 
-  async _renderSummary() {
+  /* ==========================================================
+     Finishing the quiz
+     ========================================================== */
+
+  async _finishQuiz() {
     const total = this.questions.length;
     const pct = Math.round((this.score / total) * 100);
     const duration = Math.round((Date.now() - this.startTime) / 1000);
 
-    let emoji, message;
-    if (pct === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
-    else if (pct >= 80) { emoji = "🎉"; message = "Amazing work!"; }
-    else if (pct >= 60) { emoji = "👍"; message = "Great job!"; }
-    else if (pct >= 40) { emoji = "📖"; message = "Good try — review the study guide."; }
-    else { emoji = "💪"; message = "Keep practicing! Read the study guide and try again."; }
+    if (this.lock && this.config.mode !== "final") {
+      completeLock(
+        this.config.subject,
+        this.config.chapter,
+        this.config.mode,
+        this.score,
+        pct
+      );
+    }
 
-    // Build attempt object and save
     const attempt = {
       id: `${this.config.mode}-${this.config.subject}-${this.config.chapter || "all"}-${Date.now()}`,
       type: this.config.mode,
@@ -208,9 +271,34 @@ export class QuizEngine {
       console.warn("Could not save attempt:", err);
     }
 
+    // Award points if a callback is provided
     if (typeof this.config.onComplete === "function") {
       this.config.onComplete(attempt);
     }
+
+    // ================================================
+    // Celebration routing:
+    //   Chapter quiz at 100% → Perfect Score celebration
+    //   Everything else → standard summary
+    // ================================================
+    if (this.config.mode === "chapter" && pct === 100) {
+      this._renderPerfectScoreCelebration(attempt);
+      return;
+    }
+
+    this._renderSummary(attempt);
+  }
+
+  _renderSummary(attempt) {
+    const total = attempt.total;
+    const pct = attempt.percent;
+
+    let emoji, message;
+    if (pct === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
+    else if (pct >= 80) { emoji = "🎉"; message = "Amazing work!"; }
+    else if (pct >= 60) { emoji = "👍"; message = "Great job!"; }
+    else if (pct >= 40) { emoji = "📖"; message = "Good try — review the study guide."; }
+    else { emoji = "💪"; message = "Keep practicing! Read the study guide and try again."; }
 
     let missedHtml = "";
     if (this.missed.length > 0) {
@@ -228,19 +316,111 @@ export class QuizEngine {
       `;
     }
 
+    const showLockedMessage = this.config.mode !== "final";
+
     this.container.innerHTML = `
       <div class="quiz-summary">
         <div class="quiz-summary-emoji">${emoji}</div>
         <div class="quiz-summary-text">You scored ${this.score} / ${total} (${pct}%)</div>
         <div class="quiz-summary-sub">${message}</div>
         ${missedHtml}
-        <button class="quiz-restart" id="quizRestartBtn">Try Again 🔄</button>
+        ${showLockedMessage ? `
+          <div class="quiz-locked-msg">
+            🔒 This quiz is done for today. Come back tomorrow for a fresh one!
+          </div>
+        ` : `
+          <button class="quiz-restart" id="quizRestartBtn">Try Again 🔄</button>
+        `}
       </div>
     `;
 
-    this.container.querySelector("#quizRestartBtn").addEventListener("click", () => {
-      this.start();
+    const restartBtn = this.container.querySelector("#quizRestartBtn");
+    if (restartBtn) {
+      restartBtn.addEventListener("click", () => this.start());
+    }
+  }
+
+  /* ==========================================================
+     Perfect Score celebration (chapter quiz at 100%)
+     ========================================================== */
+
+  _renderPerfectScoreCelebration(attempt) {
+    const total = attempt.total;
+
+    const confettiPieces = Array.from({ length: 30 }, (_, i) => {
+      const left = Math.random() * 100;
+      const delay = Math.random() * 1.5;
+      const emoji = ["⭐", "✨", "🌟", "🎉", "💫"][i % 5];
+      return `<span class="confetti" style="left:${left}%; animation-delay:${delay}s;">${emoji}</span>`;
+    }).join("");
+
+    this.container.innerHTML = `
+      <div class="dh-celebration dh-celebration-perfect">
+        <div class="dh-confetti-container">${confettiPieces}</div>
+
+        <div class="dh-celebration-content dh-celebration-content-gold">
+          <div class="dh-celebration-emoji">⭐</div>
+          <div class="dh-celebration-title dh-celebration-title-gold">PERFECT SCORE!</div>
+          <div class="dh-celebration-skill">${this.config.chapterName || "Chapter Quiz"}</div>
+          <div class="dh-celebration-sub">You got all ${total} right — 100%!</div>
+
+          <div class="dh-celebration-actions">
+            <button class="dh-check-btn" onclick="App.goHome()">🏠 Back to Home</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ==========================================================
+     Completed review view (locked from earlier today)
+     ========================================================== */
+
+  _renderCompletedView() {
+    const { score, percent, userAnswers } = this.reviewData;
+
+    let emoji, message;
+    if (percent === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
+    else if (percent >= 80) { emoji = "🎉"; message = "Amazing work!"; }
+    else if (percent >= 60) { emoji = "👍"; message = "Great job!"; }
+    else if (percent >= 40) { emoji = "📖"; message = "Review the study guide."; }
+    else { emoji = "💪"; message = "Read the study guide and try again tomorrow."; }
+
+    let reviewHtml = "";
+    this.questions.forEach((q, i) => {
+      const correctText = q.options[q.correct];
+      const userAns = userAnswers[i];
+      const isCorrect = userAns === correctText;
+      reviewHtml += `
+        <div class="review-item ${isCorrect ? "review-correct" : "review-incorrect"}">
+          <div class="review-q">${i + 1}. ${q.question}</div>
+          <div class="review-a">
+            ${isCorrect
+              ? `<span class="review-ok">✓ Your answer: ${userAns}</span>`
+              : `<span class="review-bad">✗ Your answer: ${userAns || "(no answer)"}</span>
+                 <span class="review-correct-answer">Correct: ${correctText}</span>`}
+          </div>
+          ${q.explanation ? `<div class="review-explain">${q.explanation}</div>` : ""}
+        </div>
+      `;
     });
+
+    this.container.innerHTML = `
+      <div class="quiz-summary">
+        <div class="quiz-summary-emoji">${emoji}</div>
+        <div class="quiz-summary-text">You scored ${score} / ${this.questions.length} (${percent}%)</div>
+        <div class="quiz-summary-sub">${message}</div>
+
+        <div class="quiz-locked-msg">
+          🔒 This quiz is done for today. Come back tomorrow for a fresh one!
+        </div>
+
+        <div class="quiz-review-list">
+          <h4>📋 Today's Answers</h4>
+          ${reviewHtml}
+        </div>
+      </div>
+    `;
   }
 }
 
