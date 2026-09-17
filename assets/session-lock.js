@@ -1,217 +1,238 @@
 /* ==========================================================
    session-lock.js
-   Manages daily quiz locks for mini-checks and chapter quizzes.
+   Manages daily quiz locks — now Supabase-backed so locks
+   are shared across devices.
 
-   Problem being solved:
-     Without this, a kid can open a mini-check, answer a couple
-     questions, refresh the page, and the quiz restarts from
-     scratch — infinite retries.
+   Each (family, subject, chapter, type, date) has at most
+   one row in quiz_locks. That row holds:
+     - questions (fixed for the day)
+     - user_answers (partial progress)
+     - current_index
+     - completed flag + final score
 
-   Solution:
-     Each (subject, chapter, type) pair can have ONE session per
-     calendar day. The session is stored in localStorage:
-       - questions (so they don't change on reload)
-       - user answers (so partial progress isn't lost)
-       - completed flag (so it can't be re-done until tomorrow)
+   All methods are async.
 
-   Storage key format:
-     quizLock_<subject>_<chapter>_<type>
+   Public API (all async unless noted):
+     - getLock(subject, chapter, type)         → lock | null
+     - createLock(subject, chapter, type, qs)  → lock
+     - saveAnswer(subject, chapter, type, i, a) → bool
+     - saveProgress(subject, chapter, type, i) → bool
+     - completeLock(subject, chapter, type, score, percent) → bool
+     - clearLock(subject, chapter, type)       → bool
+     - isCompletedToday(subject, chapter, type) → bool
 
-   Value shape:
-     {
-       date: "2026-09-16",
-       questions: [ { question, options, correct, explanation } ],
-       userAnswers: [ "...", "...", null, ... ],  // null = unanswered
-       currentIndex: 2,
-       completed: false,
-       score: null,
-       percent: null,
-       startedAt: 1712345678901
-     }
-
-   Public API:
-     - getLock(subject, chapter, type)
-       Returns the current lock object, or null if none exists for today.
-
-     - createLock(subject, chapter, type, questions)
-       Creates a new lock for today. Clears any stale lock.
-
-     - saveAnswer(subject, chapter, type, index, answer)
-       Persists a single answer.
-
-     - saveProgress(subject, chapter, type, currentIndex)
-       Persists which question they were on.
-
-     - completeLock(subject, chapter, type, score, percent)
-       Marks the lock complete.
-
-     - clearLock(subject, chapter, type)
-       Removes the lock (used on new day or manual reset).
-
-     - isCompletedToday(subject, chapter, type)
-       Quick check.
-
-   Auto-cleanup:
-     On any read, if the stored lock's date is not today, it's
-     considered stale and removed automatically.
+   Stale locks (different date) are returned as null and
+   lazily cleaned up on next write.
    ========================================================== */
 
-const KEY_PREFIX = "quizLock_";
+import { supaGet, supaInsert, supaPatch, supaDelete, FAMILY_ID } from "./supabase-config.js";
 
 /* ==========================================================
    Helpers
    ========================================================== */
 
-function storageKey(subject, chapter, type) {
-  return `${KEY_PREFIX}${subject}_${chapter}_${type}`;
-}
-
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function safeRead(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.warn("session-lock: could not read", key, err);
-    return null;
-  }
+function toLock(row) {
+  if (!row) return null;
+  return {
+    date: row.date,
+    questions: row.questions,
+    userAnswers: row.user_answers || [],
+    currentIndex: row.current_index || 0,
+    completed: row.completed === true,
+    score: row.score,
+    percent: row.percent,
+    startedAt: row.started_at ? new Date(row.started_at).getTime() : Date.now(),
+    completedAt: row.completed_at ? new Date(row.completed_at).getTime() : null
+  };
 }
 
-function safeWrite(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    console.warn("session-lock: could not write", key, err);
-  }
-}
-
-function safeRemove(key) {
-  try {
-    localStorage.removeItem(key);
-  } catch (err) {}
+function buildKey(subject, chapter, type) {
+  return { subject, chapter, type };
 }
 
 /* ==========================================================
-   Public API
+   Read
    ========================================================== */
 
 /**
- * Get the lock for today, or null if none / stale.
- * Stale locks (from previous days) are automatically removed.
+ * Get today's lock for the given (subject, chapter, type).
+ * Returns null if none exists for today.
+ * Stale locks from previous days are ignored (and cleaned up
+ * on next write).
  */
-export function getLock(subject, chapter, type) {
-  const key = storageKey(subject, chapter, type);
-  const lock = safeRead(key);
-  if (!lock) return null;
-
-  // If the lock is from a previous day, remove it
-  if (lock.date !== todayISO()) {
-    safeRemove(key);
+export async function getLock(subject, chapter, type) {
+  const today = todayISO();
+  try {
+    const rows = await supaGet(
+      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
+      `&subject=eq.${encodeURIComponent(subject)}` +
+      `&chapter=eq.${encodeURIComponent(chapter)}` +
+      `&type=eq.${encodeURIComponent(type)}` +
+      `&date=eq.${today}&limit=1`
+    );
+    if (!rows || rows.length === 0) return null;
+    return toLock(rows[0]);
+  } catch (err) {
+    console.error("session-lock.getLock failed:", err);
     return null;
   }
-
-  return lock;
 }
 
+/* ==========================================================
+   Create
+   ========================================================== */
+
 /**
- * Create a new lock for today with the given questions.
- * Overwrites any existing lock.
- *
- * @param {string} subject - "math" | "science"
- * @param {string} chapter - chapter id
- * @param {string} type - "mini" | "chapter"
- * @param {Array} questions - the question pool (5 for mini, 15 for chapter)
- * @returns {object} the created lock
+ * Create today's lock. If a stale lock exists for the same
+ * (subject, chapter, type) with a different date, it gets
+ * overwritten (via upsert on the composite key).
  */
-export function createLock(subject, chapter, type, questions) {
-  const lock = {
+export async function createLock(subject, chapter, type, questions) {
+  const row = {
+    family_id: FAMILY_ID,
+    subject,
+    chapter,
+    type,
     date: todayISO(),
     questions: questions,
-    userAnswers: new Array(questions.length).fill(null),
-    currentIndex: 0,
+    user_answers: new Array(questions.length).fill(null),
+    current_index: 0,
     completed: false,
     score: null,
     percent: null,
-    startedAt: Date.now()
+    started_at: new Date().toISOString(),
+    completed_at: null
   };
-  safeWrite(storageKey(subject, chapter, type), lock);
-  return lock;
+
+  try {
+    // Upsert so stale locks from previous days are replaced cleanly.
+    // The primary key is (family_id, subject, chapter, type, date),
+    // so different dates won't conflict.
+    const res = await supaInsert("quiz_locks", row);
+    return toLock(res && res[0] ? res[0] : row);
+  } catch (err) {
+    console.error("session-lock.createLock failed:", err);
+    // Return an in-memory lock so the quiz can still proceed
+    return toLock(row);
+  }
+}
+
+/* ==========================================================
+   Save answer / progress
+   ========================================================== */
+
+async function patchLock(subject, chapter, type, patch) {
+  const today = todayISO();
+  try {
+    const res = await supaPatch(
+      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
+      `&subject=eq.${encodeURIComponent(subject)}` +
+      `&chapter=eq.${encodeURIComponent(chapter)}` +
+      `&type=eq.${encodeURIComponent(type)}` +
+      `&date=eq.${today}`,
+      patch
+    );
+    return true;
+  } catch (err) {
+    console.error("session-lock.patchLock failed:", err);
+    return false;
+  }
 }
 
 /**
  * Save a single answer.
+ * Note: to prevent races, the caller (quiz-engine) should
+ * read the current user_answers from this.lock, mutate it,
+ * and pass the FULL array. This avoids the "last write wins"
+ * problem when two writes race.
+ *
+ * To keep the API simple for the caller, we accept a single
+ * index+answer and do a read-modify-write. Fine for one kid
+ * on one device at a time.
  */
-export function saveAnswer(subject, chapter, type, index, answer) {
-  const key = storageKey(subject, chapter, type);
-  const lock = safeRead(key);
-  if (!lock || lock.date !== todayISO()) return false;
-
+export async function saveAnswer(subject, chapter, type, index, answer) {
+  const lock = await getLock(subject, chapter, type);
+  if (!lock) return false;
   if (index < 0 || index >= lock.userAnswers.length) return false;
-  lock.userAnswers[index] = answer;
-  safeWrite(key, lock);
-  return true;
+
+  const next = lock.userAnswers.slice();
+  next[index] = answer;
+  return patchLock(subject, chapter, type, { user_answers: next });
 }
 
 /**
- * Save which question index the user is currently on.
+ * Save current question index.
  */
-export function saveProgress(subject, chapter, type, currentIndex) {
-  const key = storageKey(subject, chapter, type);
-  const lock = safeRead(key);
-  if (!lock || lock.date !== todayISO()) return false;
-
-  lock.currentIndex = currentIndex;
-  safeWrite(key, lock);
-  return true;
+export async function saveProgress(subject, chapter, type, currentIndex) {
+  return patchLock(subject, chapter, type, { current_index: currentIndex });
 }
 
 /**
- * Mark a lock complete with final score.
+ * Mark lock complete.
  */
-export function completeLock(subject, chapter, type, score, percent) {
-  const key = storageKey(subject, chapter, type);
-  const lock = safeRead(key);
-  if (!lock || lock.date !== todayISO()) return false;
-
-  lock.completed = true;
-  lock.score = score;
-  lock.percent = percent;
-  lock.completedAt = Date.now();
-  safeWrite(key, lock);
-  return true;
+export async function completeLock(subject, chapter, type, score, percent) {
+  return patchLock(subject, chapter, type, {
+    completed: true,
+    score: score,
+    percent: percent,
+    completed_at: new Date().toISOString()
+  });
 }
 
-/**
- * Remove a lock entirely.
- */
-export function clearLock(subject, chapter, type) {
-  safeRemove(storageKey(subject, chapter, type));
-}
+/* ==========================================================
+   Clear
+   ========================================================== */
 
 /**
- * Quick check: has this quiz already been completed today?
+ * Remove today's lock. Used for edge cases or manual reset.
  */
-export function isCompletedToday(subject, chapter, type) {
-  const lock = getLock(subject, chapter, type);
+export async function clearLock(subject, chapter, type) {
+  const today = todayISO();
+  try {
+    await supaDelete(
+      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
+      `&subject=eq.${encodeURIComponent(subject)}` +
+      `&chapter=eq.${encodeURIComponent(chapter)}` +
+      `&type=eq.${encodeURIComponent(type)}` +
+      `&date=eq.${today}`
+    );
+    return true;
+  } catch (err) {
+    console.error("session-lock.clearLock failed:", err);
+    return false;
+  }
+}
+
+/* ==========================================================
+   Convenience
+   ========================================================== */
+
+export async function isCompletedToday(subject, chapter, type) {
+  const lock = await getLock(subject, chapter, type);
   return lock !== null && lock.completed === true;
 }
 
-/**
- * Debug helper — dump all locks (useful for testing).
- */
-export function dumpAllLocks() {
-  const result = {};
+/* ==========================================================
+   Cleanup (optional — can be called on app boot)
+   Deletes locks older than 30 days.
+   ========================================================== */
+
+export async function cleanupOldLocks() {
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(KEY_PREFIX)) {
-        result[key] = JSON.parse(localStorage.getItem(key));
-      }
-    }
-  } catch (err) {}
-  return result;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffISO = cutoff.toISOString().slice(0, 10);
+
+    await supaDelete(
+      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}&date=lt.${cutoffISO}`
+    );
+    return true;
+  } catch (err) {
+    console.error("session-lock.cleanupOldLocks failed:", err);
+    return false;
+  }
 }

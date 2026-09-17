@@ -2643,3 +2643,48 @@ tr:nth-child(even) { background: #F8F9FA; }
     letter-spacing: 1px;
   }
 }
+
+/* ==========================================================
+   LOCKED SECTION STEPS
+   Used in the section strip when a section is gated
+   (e.g., Chapter Quiz is locked until Quick Check passes).
+   ========================================================== */
+
+.section-step.locked {
+  background: #F1F3F5;
+  color: #AAA;
+  border-color: #E9ECEF;
+  cursor: not-allowed;
+  opacity: 0.75;
+  position: relative;
+}
+
+.section-step.locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Keep the "current" or "done" styles from showing through when locked */
+.section-step.locked.done,
+.section-step.locked.current {
+  background: #F1F3F5;
+  color: #AAA;
+  border-color: #E9ECEF;
+}
+
+.section-step.locked.done::after {
+  color: #AAA;
+}
+
+/* Disabled state — browser handles the cursor and click blocking */
+.section-step:disabled {
+  cursor: not-allowed;
+  pointer-events: auto; /* still allow hover so tooltips work */
+}
+
+/* Small mobile tweak */
+@media (max-width: 600px) {
+  .section-step.locked {
+    font-size: 0.8em;
+  }
+}

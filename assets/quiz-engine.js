@@ -2,13 +2,16 @@
    quiz-engine.js
    Reusable quiz renderer for mini-checks and chapter quizzes.
 
-   Integrates with session-lock.js — each (subject, chapter, type)
-   has one session per calendar day.
+   Integrates with session-lock.js (Supabase-backed) — each
+   (subject, chapter, type) has one session per calendar day,
+   shared across all devices.
 
    Celebrations:
      - Chapter quiz at 100% → Perfect Score celebration (gold)
-     - Mini-check → standard summary (no celebration)
+     - Mini-check → standard summary
      - Final exam → standard summary with retry option
+
+   Points awarding is handled by the caller via onComplete.
    ========================================================== */
 
 import { Storage } from "./storage.js";
@@ -68,8 +71,15 @@ export class QuizEngine {
   async start() {
     const { mode, subject, chapter } = this.config;
 
+    // Mini and chapter use daily locks; final does not
     if (mode !== "final") {
-      const existingLock = getLock(subject, chapter, mode);
+      let existingLock = null;
+      try {
+        existingLock = await getLock(subject, chapter, mode);
+      } catch (err) {
+        console.warn("Could not check lock (offline?):", err);
+      }
+
       if (existingLock) {
         this.lock = existingLock;
         this.questions = existingLock.questions;
@@ -92,14 +102,21 @@ export class QuizEngine {
       }
     }
 
+    // No lock — generate fresh questions
     this.questions = await this._pickQuestions();
     if (this.questions.length === 0) {
       this.container.innerHTML = `<div class="empty-state">No questions available for this quiz yet.</div>`;
       return;
     }
 
+    // Create the lock (Supabase) for mini/chapter
     if (mode !== "final") {
-      this.lock = createLock(subject, chapter, mode, this.questions);
+      try {
+        this.lock = await createLock(subject, chapter, mode, this.questions);
+      } catch (err) {
+        console.warn("Could not create lock:", err);
+        this.lock = null;
+      }
     }
 
     this.currentIndex = 0;
@@ -121,7 +138,9 @@ export class QuizEngine {
         });
       });
       const history = (await Storage.getMeta(HISTORY_META_KEY)) || [];
-      const historyIds = history.flat ? history.flat() : (Array.isArray(history) ? history : []);
+      const historyIds = Array.isArray(history) && Array.isArray(history[0])
+        ? history.flat()
+        : (Array.isArray(history) ? history : []);
       const chosen = pickFreshQuizQuestions(combined, count, historyIds);
 
       const newRun = chosen.map(q => q.id);
@@ -149,10 +168,6 @@ export class QuizEngine {
     const shuffledOpts = shuffle(q.options);
     this.answered = false;
 
-    const priorAnswer = this.lock && this.lock.userAnswers
-      ? this.lock.userAnswers[this.currentIndex]
-      : null;
-
     const pct = Math.round((this.currentIndex / this.questions.length) * 100);
 
     this.container.innerHTML = `
@@ -173,7 +188,7 @@ export class QuizEngine {
     const feedback = this.container.querySelector(".quiz-feedback");
 
     buttons.forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         if (this.answered) return;
         this.answered = true;
 
@@ -199,6 +214,7 @@ export class QuizEngine {
           });
         }
 
+        // Save answer to Supabase (non-blocking, best-effort)
         if (this.lock && this.config.mode !== "final") {
           saveAnswer(
             this.config.subject,
@@ -206,9 +222,10 @@ export class QuizEngine {
             this.config.mode,
             this.currentIndex,
             picked
-          );
+          ).catch(err => console.warn("Could not save answer:", err));
         }
 
+        // Next button
         const nextBtn = document.createElement("button");
         nextBtn.className = "quiz-next";
         nextBtn.textContent = this.currentIndex === this.questions.length - 1
@@ -221,7 +238,7 @@ export class QuizEngine {
               this.config.chapter,
               this.config.mode,
               this.currentIndex
-            );
+            ).catch(err => console.warn("Could not save progress:", err));
           }
           this._renderQuestion();
         });
@@ -232,7 +249,7 @@ export class QuizEngine {
   }
 
   /* ==========================================================
-     Finishing the quiz
+     Finishing
      ========================================================== */
 
   async _finishQuiz() {
@@ -240,16 +257,22 @@ export class QuizEngine {
     const pct = Math.round((this.score / total) * 100);
     const duration = Math.round((Date.now() - this.startTime) / 1000);
 
+    // Mark lock complete
     if (this.lock && this.config.mode !== "final") {
-      completeLock(
-        this.config.subject,
-        this.config.chapter,
-        this.config.mode,
-        this.score,
-        pct
-      );
+      try {
+        await completeLock(
+          this.config.subject,
+          this.config.chapter,
+          this.config.mode,
+          this.score,
+          pct
+        );
+      } catch (err) {
+        console.warn("Could not complete lock:", err);
+      }
     }
 
+    // Build attempt
     const attempt = {
       id: `${this.config.mode}-${this.config.subject}-${this.config.chapter || "all"}-${Date.now()}`,
       type: this.config.mode,
@@ -262,25 +285,37 @@ export class QuizEngine {
       percent: pct,
       duration: duration,
       missed: this.missed,
+      // Save the full question set so the review view can render it
+      questions: this.questions.map((q, i) => ({
+        question: q.question,
+        correctAnswer: q.options[q.correct],
+        userAnswer: this._getUserAnswerForIndex(i)
+      })),
       timestamp: new Date().toISOString()
     };
 
+    // Save attempt to Supabase — LOUD on failure
     try {
       await Storage.saveAttempt(attempt);
     } catch (err) {
-      console.warn("Could not save attempt:", err);
+      console.error("Could not save attempt to Supabase:", err);
+      alert(
+        "⚠️ Your score couldn't be saved to the cloud. " +
+        "Check your internet connection. " +
+        "The quiz is marked complete for today, but your points may not be awarded."
+      );
     }
 
-    // Award points if a callback is provided
+    // Notify caller (used by chapter-view.js to award points)
     if (typeof this.config.onComplete === "function") {
-      this.config.onComplete(attempt);
+      try {
+        await this.config.onComplete(attempt);
+      } catch (err) {
+        console.warn("onComplete callback failed:", err);
+      }
     }
 
-    // ================================================
-    // Celebration routing:
-    //   Chapter quiz at 100% → Perfect Score celebration
-    //   Everything else → standard summary
-    // ================================================
+    // Celebration routing
     if (this.config.mode === "chapter" && pct === 100) {
       this._renderPerfectScoreCelebration(attempt);
       return;
@@ -288,6 +323,21 @@ export class QuizEngine {
 
     this._renderSummary(attempt);
   }
+
+  /**
+   * Retrieve the user's answer for a given index.
+   * Prefers the lock's stored answers, falls back to the current in-memory state.
+   */
+  _getUserAnswerForIndex(index) {
+    if (this.lock && this.lock.userAnswers && this.lock.userAnswers[index] != null) {
+      return this.lock.userAnswers[index];
+    }
+    return null;
+  }
+
+  /* ==========================================================
+     Summary
+     ========================================================== */
 
   _renderSummary(attempt) {
     const total = attempt.total;
@@ -341,7 +391,7 @@ export class QuizEngine {
   }
 
   /* ==========================================================
-     Perfect Score celebration (chapter quiz at 100%)
+     Perfect Score celebration
      ========================================================== */
 
   _renderPerfectScoreCelebration(attempt) {

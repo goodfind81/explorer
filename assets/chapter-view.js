@@ -5,12 +5,23 @@
      2. Quick Check (mini-check quiz)
      3. Chapter Quiz
 
-   Shows a progress strip at the top with clickable sections.
-   Handles Next / Back navigation between sections.
+   Section gating:
+     - Study Guide is always open
+     - Quick Check is always open
+     - Chapter Quiz is locked until the Quick Check passes
+       at >= 80% (configurable below)
+
+   Points:
+     - Quick Check awards points on complete (1 pt/correct, no bonus)
+     - Chapter Quiz awards points on complete (1 pt/correct, +5 if perfect)
    ========================================================== */
 
 import { QuizEngine } from "./quiz-engine.js";
 import { Storage } from "./storage.js";
+import { awardPointsForAttempt } from "./points.js";
+import { getLock } from "./session-lock.js";
+
+const QUICK_CHECK_UNLOCK_THRESHOLD = 80; // % needed on Quick Check to unlock Chapter Quiz
 
 /* ==========================================================
    Main render
@@ -18,11 +29,6 @@ import { Storage } from "./storage.js";
 
 export function renderChapterView(container, config) {
   const { subject, chapter, sections, initialSection } = config;
-
-  // sections: array of { key, label, render }
-  //   e.g. [{ key: "study", label: "Study Guide", render: fn },
-  //         { key: "check", label: "Quick Check", render: fn },
-  //         { key: "quiz",  label: "Chapter Quiz", render: fn }]
 
   if (!sections || sections.length === 0) {
     container.innerHTML = `<div class="empty-state">No sections available.</div>`;
@@ -36,11 +42,39 @@ export function renderChapterView(container, config) {
     currentIndex: 0
   };
 
-  // Find initial section index
   if (initialSection) {
     const idx = sections.findIndex(s => s.key === initialSection);
     if (idx >= 0) state.currentIndex = idx;
   }
+
+  // Kick off an initial check of the gating state, then render
+  refreshAndRender(container, state);
+}
+
+/**
+ * Reads the current lock state (mini-check), computes gate status,
+ * then renders the section strip and current section.
+ */
+async function refreshAndRender(container, state) {
+  const { subject, chapter } = state;
+
+  // Check the mini-check lock status
+  let quickCheckPassed = false;
+  let quickCheckAttempted = false;
+  try {
+    const lock = await getLock(subject.id, chapter.id, "mini");
+    if (lock && lock.completed) {
+      quickCheckAttempted = true;
+      if ((lock.percent || 0) >= QUICK_CHECK_UNLOCK_THRESHOLD) {
+        quickCheckPassed = true;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not check mini lock:", err);
+  }
+
+  state.quickCheckPassed = quickCheckPassed;
+  state.quickCheckAttempted = quickCheckAttempted;
 
   renderCurrentSection(container, state);
 }
@@ -50,30 +84,39 @@ export function renderChapterView(container, config) {
    ========================================================== */
 
 function renderCurrentSection(container, state) {
-  const { sections, currentIndex, subject, chapter } = state;
+  const { sections, currentIndex, subject, chapter, quickCheckPassed } = state;
   const section = sections[currentIndex];
 
+  // Determine which sections are locked
+  const studyLocked = false;
+  const checkLocked = false;
+  const quizLocked = !quickCheckPassed;
+
   // Build the progress strip
-  const progressHtml = `
+  const stripHtml = `
     <button class="section-step ${currentIndex === 0 ? "current" : ""} ${currentIndex > 0 ? "done" : ""}"
             data-idx="0">1. Study Guide</button>
-    <button class="section-step ${currentIndex === 1 ? "current" : ""} ${currentIndex > 1 ? "done" : ""}"
-            data-idx="1">2. Quick Check</button>
-    <button class="section-step ${currentIndex === 2 ? "current" : ""} ${currentIndex > 2 ? "done" : ""}"
-            data-idx="2">3. Chapter Quiz</button>
+    <button class="section-step ${currentIndex === 1 ? "current" : ""} ${currentIndex > 1 ? "done" : ""} ${checkLocked ? "locked" : ""}"
+            data-idx="1" ${checkLocked ? "disabled" : ""}>
+      2. Quick Check${checkLocked ? " 🔒" : ""}
+    </button>
+    <button class="section-step ${currentIndex === 2 ? "current" : ""} ${currentIndex > 2 ? "done" : ""} ${quizLocked ? "locked" : ""}"
+            data-idx="2" ${quizLocked ? "disabled" : ""}>
+      3. Chapter Quiz${quizLocked ? " 🔒" : ""}
+    </button>
   `;
 
-  // Clear and rebuild container
   container.innerHTML = `
     <div class="section-strip" id="sectionStrip">
-      ${progressHtml}
+      ${stripHtml}
     </div>
     <div class="section-body" id="sectionBody"></div>
   `;
 
-  // Wire up section strip
+  // Wire up section strip (skip locked)
   container.querySelectorAll(".section-step").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (btn.disabled) return;
       const idx = parseInt(btn.dataset.idx);
       if (idx < sections.length) {
         state.currentIndex = idx;
@@ -82,15 +125,25 @@ function renderCurrentSection(container, state) {
     });
   });
 
-  // Render the actual section content
+  // Render the section content
   const body = container.querySelector("#sectionBody");
   section.render(body, {
     subject,
     chapter,
     onNext: () => {
+      // Refresh gate state before moving forward
       if (state.currentIndex < sections.length - 1) {
-        state.currentIndex++;
-        renderCurrentSection(container, state);
+        refreshAndRender(container, state).then(() => {
+          // If the next section is now unlocked, advance to it
+          const nextIdx = state.currentIndex + 1;
+          if (nextIdx === 1) {
+            state.currentIndex = 1;
+            renderCurrentSection(container, state);
+          } else if (nextIdx === 2 && state.quickCheckPassed) {
+            state.currentIndex = 2;
+            renderCurrentSection(container, state);
+          }
+        });
       }
     },
     onBack: () => {
@@ -98,16 +151,19 @@ function renderCurrentSection(container, state) {
         state.currentIndex--;
         renderCurrentSection(container, state);
       }
+    },
+    onRefreshGate: async () => {
+      await refreshAndRender(container, state);
     }
   });
 }
 
 /* ==========================================================
-   Section renderers (exported so app.js can build the sections array)
+   Section renderers
    ========================================================== */
 
 /**
- * Study Guide section: just renders the chapter's studyGuideHtml.
+ * Study Guide — renders chapter.studyGuideHtml
  */
 export function renderStudyGuideSection(container, ctx) {
   const { chapter } = ctx;
@@ -127,8 +183,7 @@ export function renderStudyGuideSection(container, ctx) {
 }
 
 /**
- * Quick Check section: mini-check quiz engine, 5 questions.
- * After completing, shows a "Next: Chapter Quiz" button.
+ * Quick Check — 5-question mini-check, awards points on complete.
  */
 export function renderQuickCheckSection(container, ctx) {
   const { subject, chapter } = ctx;
@@ -141,7 +196,7 @@ export function renderQuickCheckSection(container, ctx) {
   container.innerHTML = `
     <div class="card">
       <h2>🤔 Quick Check</h2>
-      <p>5 questions to test what you just learned. Read the study guide first if you need a refresher.</p>
+      <p>5 questions to test what you just learned. Pass at ${QUICK_CHECK_UNLOCK_THRESHOLD}%+ to unlock the Chapter Quiz.</p>
       <div class="quiz-wrapper mini" id="miniQuiz"></div>
     </div>
     <div class="section-actions" style="display:none;" id="qcActions">
@@ -159,21 +214,42 @@ export function renderQuickCheckSection(container, ctx) {
     chapterName: chapter.name,
     pool: chapter.miniCheck,
     count: 5,
-    onComplete: () => {
-      // Reveal nav buttons after first attempt
+    onComplete: async (attempt) => {
+      // Award points
+      try {
+        await awardPointsForAttempt(attempt, { advanced: false });
+      } catch (err) {
+        console.warn("Could not award points for mini-check:", err);
+      }
+
+      // Refresh gate state so the Chapter Quiz unlocks if threshold met
+      if (typeof ctx.onRefreshGate === "function") {
+        await ctx.onRefreshGate();
+      }
+
+      // Reveal nav buttons
       const actions = container.querySelector("#qcActions");
       if (actions) actions.style.display = "flex";
     }
   });
   engine.start();
 
-  // Wire up nav buttons (visible after quiz completes)
   container.querySelector("#qcBackBtn").addEventListener("click", ctx.onBack);
-  container.querySelector("#qcNextBtn").addEventListener("click", ctx.onNext);
+  container.querySelector("#qcNextBtn").addEventListener("click", () => {
+    // Force a fresh gate check before advancing
+    if (typeof ctx.onRefreshGate === "function") {
+      ctx.onRefreshGate();
+    }
+    // The parent will handle moving to the next section
+    setTimeout(() => {
+      const next = document.querySelector('.section-step[data-idx="2"]');
+      if (next && !next.disabled) next.click();
+    }, 150);
+  });
 }
 
 /**
- * Chapter Quiz section: 15-question multiple choice quiz.
+ * Chapter Quiz — 15-question quiz, awards points on complete.
  */
 export function renderChapterQuizSection(container, ctx) {
   const { subject, chapter } = ctx;
@@ -209,7 +285,14 @@ export function renderChapterQuizSection(container, ctx) {
     chapter: chapter.id,
     chapterName: chapter.name,
     pool: chapter.chapterQuiz,
-    count: 15
+    count: 15,
+    onComplete: async (attempt) => {
+      try {
+        await awardPointsForAttempt(attempt, { advanced: false });
+      } catch (err) {
+        console.warn("Could not award points for chapter quiz:", err);
+      }
+    }
   });
   engine.start();
 
