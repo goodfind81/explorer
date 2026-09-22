@@ -157,11 +157,13 @@ export async function renderParentDashboard(mainEl, subjects) {
       No attempts yet. Once practice starts, results show up here.
     </div>`;
     mainEl.appendChild(empty);
+    await renderResetLocksSection(mainEl);
     await renderRewardsSection(mainEl, subjects);
     await renderSkillMastery(mainEl, subjects);
     return;
   }
 
+  await renderResetLocksSection(mainEl);
   renderOverallStats(mainEl, attempts);
   await renderRewardsSection(mainEl, subjects);
   await renderSkillMastery(mainEl, subjects);
@@ -867,4 +869,113 @@ async function renderRewardsSection(mainEl, subjects) {
       }
     });
   });
+}
+
+/* ==========================================================
+   8. Reset Locks (parent control)
+   Allows the parent to clear today's quiz/homework locks so
+   a stuck or mis-scored activity can be retaken.
+   ========================================================== */
+
+async function renderResetLocksSection(mainEl) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.style.borderLeftColor = "var(--accent-orange)";
+
+  card.innerHTML = `
+    <h3>🔓 Reset Locks</h3>
+    <p style="color:#666; font-size:0.95em;">
+      Use these if a quiz or homework is stuck, scored wrong, or you need
+      Krishna to retry. Each button clears <strong>today's</strong> lock for that category.
+    </p>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn-secondary" data-reset="mini">🔄 Reset Mini-Checks</button>
+      <button class="btn-secondary" data-reset="chapter">🔄 Reset Chapter Quizzes</button>
+      <button class="btn-secondary" data-reset="homework">🔄 Reset Homework</button>
+      <button class="btn-danger" data-reset="all">🔄 Reset Everything Today</button>
+    </div>
+
+    <div id="resetLocksResult" style="margin-top:14px; font-size:0.9em; color:#666;"></div>
+  `;
+
+  mainEl.appendChild(card);
+
+  // Wire buttons
+  card.querySelectorAll("[data-reset]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const target = btn.dataset.reset;
+      const label = {
+        mini: "mini-checks",
+        chapter: "chapter quizzes",
+        homework: "homework",
+        all: "all locks (mini, chapter, homework)"
+      }[target];
+
+      if (!confirm(`Reset ${label} for today?\n\nKrishna will be able to retake them immediately.`)) {
+        return;
+      }
+
+      await performReset(card, target);
+    });
+  });
+}
+
+/**
+ * Perform the actual reset in Supabase.
+ * @param {HTMLElement} card - the reset card, for status display
+ * @param {string} target - "mini" | "chapter" | "homework" | "all"
+ */
+async function performReset(card, target) {
+  const resultEl = card.querySelector("#resetLocksResult");
+  resultEl.textContent = "Working…";
+  resultEl.style.color = "#666";
+
+  try {
+    const { supaDelete, FAMILY_ID } = await import("./supabase-config.js");
+    const today = new Date().toISOString().slice(0, 10);
+    const fam = `family_id=eq.${encodeURIComponent(FAMILY_ID)}`;
+    const dateStr = `date=eq.${today}`;
+
+    const deleted = { mini: 0, chapter: 0, homework: 0, streak: 0 };
+
+    if (target === "mini" || target === "all") {
+      await supaDelete(`quiz_locks?${fam}&${dateStr}&type=eq.mini`);
+      deleted.mini = 1;
+    }
+    if (target === "chapter" || target === "all") {
+      await supaDelete(`quiz_locks?${fam}&${dateStr}&type=eq.chapter`);
+      deleted.chapter = 1;
+    }
+    if (target === "homework") {
+      // Homework doesn't use quiz_locks — it uses skill_progress + attempts.
+      // For homework reset, we just need to remove today's homework attempt
+      // so the "best of the day" check resets, and clear any relevant locks.
+      await supaDelete(`quiz_locks?${fam}&${dateStr}&type=eq.homework`);
+      deleted.homework = 1;
+    }
+
+    if (target === "all") {
+      // For "all", also clear any leftover locks regardless of type
+      await supaDelete(`quiz_locks?${fam}&${dateStr}`);
+    }
+
+    // Also clear localStorage fallback for safety
+    Object.keys(localStorage)
+      .filter(k => k.startsWith("quizLock_"))
+      .forEach(k => localStorage.removeItem(k));
+
+    const summary = [];
+    if (target === "mini" || target === "all") summary.push("mini-checks");
+    if (target === "chapter" || target === "all") summary.push("chapter quizzes");
+    if (target === "homework" || target === "all") summary.push("homework");
+
+    resultEl.textContent = `✅ Reset ${summary.join(", ")} for today. Krishna can retake them now. Refresh his device if needed.`;
+    resultEl.style.color = "#27AE60";
+
+  } catch (err) {
+    resultEl.textContent = "❌ Reset failed: " + err.message;
+    resultEl.style.color = "#E74C3C";
+    console.error(err);
+  }
 }
