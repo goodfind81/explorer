@@ -6,15 +6,15 @@
    (subject, chapter, type) has one session per calendar day,
    shared across all devices.
 
-   Key invariants (fixed in this version):
+   Key invariants:
      1. Questions AND correct answers are captured ONCE at
         quiz start and never re-read from the pool.
      2. Score and missed list are computed at the END from
         the answers, not accumulated during the quiz. This
         survives page reloads and mid-quiz refreshes.
-     3. saveAnswer stores the correct answer text alongside
-        the user's pick, so the review view is not dependent
-        on the pool's option order.
+     3. _finishQuiz refuses to submit if any question is
+        unanswered, forcing the user back to the first
+        blank question.
    ========================================================== */
 
 import { Storage } from "./storage.js";
@@ -74,12 +74,12 @@ export class QuizEngine {
   constructor(container, config) {
     this.container = container;
     this.config = config;
-    this.questions = [];       // normalized {question, options, correctAnswer, explanation}
+    this.questions = [];
     this.currentIndex = 0;
     this.answered = false;
     this.startTime = 0;
     this.lock = null;
-    this.userAnswers = [];      // "user's picked option text" or null, one per question
+    this.userAnswers = [];
     this.reviewMode = false;
     this.reviewData = null;
   }
@@ -117,7 +117,6 @@ export class QuizEngine {
       }
     }
 
-    // No lock — generate fresh questions
     const rawQuestions = await this._pickQuestions();
     if (rawQuestions.length === 0) {
       this.container.innerHTML = `<div class="empty-state">No questions available for this quiz yet.</div>`;
@@ -168,7 +167,7 @@ export class QuizEngine {
   }
 
   /* ==========================================================
-     Score / missed computation (single source of truth)
+     Score / missed computation
      ========================================================== */
 
   _computeScoreAndMissed() {
@@ -205,10 +204,6 @@ export class QuizEngine {
     const shuffledOpts = shuffle(q.options);
     this.answered = false;
 
-    // If the user already answered this question (e.g., after refresh),
-    // we don't show the previous answer — they get a fresh shot at it.
-    // (Their progress saves; they just don't see the prior pick.)
-
     const pct = Math.round((this.currentIndex / this.questions.length) * 100);
 
     this.container.innerHTML = `
@@ -236,10 +231,8 @@ export class QuizEngine {
         const picked = btn.dataset.answer;
         buttons.forEach(b => (b.disabled = true));
 
-        // Store the user's pick in memory
         this.userAnswers[this.currentIndex] = picked;
 
-        // Display feedback
         if (picked === q.correctAnswer) {
           btn.classList.add("correct");
           feedback.className = "quiz-feedback correct show";
@@ -253,7 +246,6 @@ export class QuizEngine {
           feedback.innerHTML = `<strong>❌ Not quite.</strong>${q.explanation || ""}`;
         }
 
-        // Save answer to Supabase (non-blocking, best-effort)
         if (this.lock && this.config.mode !== "final") {
           saveAnswer(
             this.config.subject,
@@ -264,7 +256,6 @@ export class QuizEngine {
           ).catch(err => console.warn("Could not save answer:", err));
         }
 
-        // Next button
         const nextBtn = document.createElement("button");
         nextBtn.className = "quiz-next";
         nextBtn.textContent = this.currentIndex === this.questions.length - 1
@@ -292,12 +283,23 @@ export class QuizEngine {
      ========================================================== */
 
   async _finishQuiz() {
+    // Guard: don't allow finishing with unanswered questions
+    const firstUnanswered = this.userAnswers.findIndex(a => a == null);
+    if (firstUnanswered !== -1) {
+      alert(
+        `You still have unanswered questions.\n\n` +
+        `Please answer question ${firstUnanswered + 1} before finishing.`
+      );
+      this.currentIndex = firstUnanswered;
+      this._renderQuestion();
+      return;
+    }
+
     const total = this.questions.length;
     const { score, missed } = this._computeScoreAndMissed();
     const pct = Math.round((score / total) * 100);
     const duration = Math.round((Date.now() - this.startTime) / 1000);
 
-    // Save the merged user answers back to the lock
     if (this.lock && this.config.mode !== "final") {
       try {
         await completeLock(
@@ -313,7 +315,6 @@ export class QuizEngine {
       }
     }
 
-    // Build attempt
     const attempt = {
       id: `${this.config.mode}-${this.config.subject}-${this.config.chapter || "all"}-${Date.now()}`,
       type: this.config.mode,
