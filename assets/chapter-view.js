@@ -18,7 +18,6 @@
 
 import { QuizEngine } from "./quiz-engine.js";
 import { Storage } from "./storage.js";
-import { awardPointsForAttempt } from "./points.js";
 import { getLock } from "./session-lock.js";
 
 const QUICK_CHECK_UNLOCK_THRESHOLD = 80; // % needed on Quick Check to unlock Chapter Quiz
@@ -215,12 +214,8 @@ export function renderQuickCheckSection(container, ctx) {
     pool: chapter.miniCheck,
     count: 5,
     onComplete: async (attempt) => {
-      // Award points
-      try {
-        await awardPointsForAttempt(attempt, { advanced: false });
-      } catch (err) {
-        console.warn("Could not award points for mini-check:", err);
-      }
+      // Points are awarded by the server trigger for chapter/mini.
+      // Client only needs to refresh the gate state and show nav buttons.
 
       // Refresh gate state so the Chapter Quiz unlocks if threshold met
       if (typeof ctx.onRefreshGate === "function") {
@@ -287,11 +282,11 @@ export function renderChapterQuizSection(container, ctx) {
     pool: chapter.chapterQuiz,
     count: 15,
     onComplete: async (attempt) => {
-      try {
-        await awardPointsForAttempt(attempt, { advanced: false });
-      } catch (err) {
-        console.warn("Could not award points for chapter quiz:", err);
-      }
+      //try {
+      //  await awardPointsForAttempt(attempt, { advanced: false });
+      //} catch (err) {
+      //  console.warn("Could not award points for chapter quiz:", err);
+      //}
     }
   });
   engine.start();

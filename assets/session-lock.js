@@ -1,41 +1,249 @@
 /* ==========================================================
    session-lock.js
-   Manages daily quiz locks — now Supabase-backed so locks
-   are shared across devices.
+   Supabase-backed quiz lock with multi-device takeover.
 
-   Each (family, subject, chapter, type, date) has at most
-   one row in quiz_locks. That row holds:
-     - questions (fixed for the day)
-     - user_answers (partial progress)
-     - current_index
-     - completed flag + final score
+   All state lives in the quiz_locks table. All writes go
+   through SQL functions (claim_quiz_lock, save_quiz_answer,
+   save_quiz_progress, heartbeat_quiz_lock, submit_quiz_attempt).
 
-   All methods are async.
+   Public API (all async):
+     claimLock(subject, chapter, type, questions, forceTakeover?)
+       → { action, lock, needsTakeover }
+     saveAnswer(subject, chapter, type, index, answer)
+       → { ok }
+     saveProgress(subject, chapter, type, currentIndex)
+       → { ok }
+     submitAttempt(subject, subjectName, chapter, chapterName, type, answers, duration)
+       → { ok, score, total, percent, attempt_id }
+     startHeartbeat(subject, chapter, type)
+       → { stop() }
+     getLock(subject, chapter, type)
+       → lock or null  (for read-only checks)
 
-   Public API (all async unless noted):
-     - getLock(subject, chapter, type)         → lock | null
-     - createLock(subject, chapter, type, qs)  → lock
-     - saveAnswer(subject, chapter, type, i, a) → bool
-     - saveProgress(subject, chapter, type, i) → bool
-     - completeLock(subject, chapter, type, score, percent) → bool
-     - clearLock(subject, chapter, type)       → bool
-     - isCompletedToday(subject, chapter, type) → bool
-
-   Stale locks (different date) are returned as null and
-   lazily cleaned up on next write.
+   Device token:
+     Each browser tab gets a unique token stored in sessionStorage.
+     The token is included in every write. Server checks ownership.
    ========================================================== */
 
-import { supaGet, supaInsert, supaPatch, supaDelete, FAMILY_ID } from "./supabase-config.js";
+import { supabaseRpc, FAMILY_ID, SUPABASE_URL, SUPABASE_KEY } from "./supabase-config.js";
 
 /* ==========================================================
-   Helpers
+   Device token (per browser tab, persists across reloads of
+   that tab but not across tabs or devices)
    ========================================================== */
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+const TOKEN_KEY = "explorer_device_token";
+
+function getDeviceToken() {
+  try {
+    let token = sessionStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      token = "dev-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+      sessionStorage.setItem(TOKEN_KEY, token);
+    }
+    return token;
+  } catch (e) {
+    // sessionStorage disabled — fall back to in-memory
+    if (!getDeviceToken._mem) {
+      getDeviceToken._mem = "mem-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+    }
+    return getDeviceToken._mem;
+  }
 }
 
-function toLock(row) {
+/* ==========================================================
+   RPC helper (defined locally to avoid a hard dep on
+   supabase-config having supabaseRpc)
+   ========================================================== */
+
+async function rpc(fnName, args) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(args || {})
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`RPC ${fnName} failed (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
+/* ==========================================================
+   Public API
+   ========================================================== */
+
+/**
+ * Claim (or take over) today's lock for a quiz.
+ * @param {string} subject
+ * @param {string} chapter
+ * @param {string} type - "mini" | "chapter"
+ * @param {array} questions - normalized questions
+ * @param {boolean} forceTakeover - if true, skip the takeover prompt
+ * @returns {object} - { action, lock, needsTakeover }
+ *   action: "created" | "resumed" | "completed" | "needs_takeover" | "took_over"
+ */
+export async function claimLock(subject, chapter, type, questions, forceTakeover = false) {
+  const token = getDeviceToken();
+  const result = await rpc("claim_quiz_lock", {
+    p_family_id: FAMILY_ID,
+    p_subject: subject,
+    p_chapter: chapter,
+    p_type: type,
+    p_device_token: token,
+    p_questions: questions,
+    p_force_takeover: forceTakeover
+  });
+  return {
+    action: result.action,
+    lock: normalizeLockFromServer(result.lock),
+    needsTakeover: result.action === "needs_takeover"
+  };
+}
+
+/**
+ * Save a single answer. Fire-and-forget from the caller.
+ */
+export async function saveAnswer(subject, chapter, type, index, answer) {
+  const token = getDeviceToken();
+  try {
+    const result = await rpc("save_quiz_answer", {
+      p_family_id: FAMILY_ID,
+      p_subject: subject,
+      p_chapter: chapter,
+      p_type: type,
+      p_device_token: token,
+      p_index: index,
+      p_answer: answer
+    });
+    return result || { ok: false, reason: "unknown" };
+  } catch (err) {
+    console.warn("saveAnswer failed:", err);
+    return { ok: false, reason: "network" };
+  }
+}
+
+/**
+ * Save current question index.
+ */
+export async function saveProgress(subject, chapter, type, currentIndex) {
+  const token = getDeviceToken();
+  try {
+    const result = await rpc("save_quiz_progress", {
+      p_family_id: FAMILY_ID,
+      p_subject: subject,
+      p_chapter: chapter,
+      p_type: type,
+      p_device_token: token,
+      p_current_index: currentIndex
+    });
+    return result || { ok: false };
+  } catch (err) {
+    console.warn("saveProgress failed:", err);
+    return { ok: false };
+  }
+}
+
+/**
+ * Submit the final attempt. Server computes score.
+ */
+export async function submitAttempt(
+  subject, subjectName, chapter, chapterName, type, answers, durationSec
+) {
+  const token = getDeviceToken();
+  const result = await rpc("submit_quiz_attempt", {
+    p_family_id: FAMILY_ID,
+    p_subject: subject,
+    p_subject_name: subjectName,
+    p_chapter: chapter,
+    p_chapter_name: chapterName,
+    p_type: type,
+    p_device_token: token,
+    p_answers: answers,
+    p_duration_sec: durationSec
+  });
+  return result;
+}
+
+/**
+ * Read-only fetch of today's lock (for checking state without
+ * claiming). Returns null if none exists for today.
+ */
+export async function getLock(subject, chapter, type) {
+  const today = new Date().toISOString().slice(0, 10);
+  const path =
+    `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
+    `&subject=eq.${encodeURIComponent(subject)}` +
+    `&chapter=eq.${encodeURIComponent(chapter)}` +
+    `&type=eq.${encodeURIComponent(type)}` +
+    `&date=eq.${today}&limit=1`;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return null;
+    return normalizeLockFromServer(rows[0]);
+  } catch (err) {
+    console.warn("getLock failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Heartbeat — pings every 60 seconds while the quiz is open.
+ * Returns { stop() } to end the heartbeat.
+ */
+export function startHeartbeat(subject, chapter, type, onLost) {
+  const token = getDeviceToken();
+  let stopped = false;
+
+  async function ping() {
+    if (stopped) return;
+    try {
+      const result = await rpc("heartbeat_quiz_lock", {
+        p_family_id: FAMILY_ID,
+        p_subject: subject,
+        p_chapter: chapter,
+        p_type: type,
+        p_device_token: token
+      });
+      if (result && result.ok === false && typeof onLost === "function") {
+        onLost(result.reason || "lost_ownership");
+        stopped = true;
+      }
+    } catch (err) {
+      console.warn("Heartbeat failed:", err);
+    }
+  }
+
+  // First ping immediately, then every 60s
+  ping();
+  const timer = setInterval(ping, 60000);
+
+  return {
+    stop() {
+      stopped = true;
+      clearInterval(timer);
+    }
+  };
+}
+
+/* ==========================================================
+   Server → client normalization
+   ========================================================== */
+
+function normalizeLockFromServer(row) {
   if (!row) return null;
   return {
     date: row.date,
@@ -45,198 +253,10 @@ function toLock(row) {
     completed: row.completed === true,
     score: row.score,
     percent: row.percent,
+    deviceToken: row.device_token,
     startedAt: row.started_at ? new Date(row.started_at).getTime() : Date.now(),
     completedAt: row.completed_at ? new Date(row.completed_at).getTime() : null
   };
 }
 
-function buildKey(subject, chapter, type) {
-  return { subject, chapter, type };
-}
-
-/* ==========================================================
-   Read
-   ========================================================== */
-
-/**
- * Get today's lock for the given (subject, chapter, type).
- * Returns null if none exists for today.
- * Stale locks from previous days are ignored (and cleaned up
- * on next write).
- */
-export async function getLock(subject, chapter, type) {
-  const today = todayISO();
-  try {
-    const rows = await supaGet(
-      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
-      `&subject=eq.${encodeURIComponent(subject)}` +
-      `&chapter=eq.${encodeURIComponent(chapter)}` +
-      `&type=eq.${encodeURIComponent(type)}` +
-      `&date=eq.${today}&limit=1`
-    );
-    if (!rows || rows.length === 0) return null;
-    return toLock(rows[0]);
-  } catch (err) {
-    console.error("session-lock.getLock failed:", err);
-    return null;
-  }
-}
-
-/* ==========================================================
-   Create
-   ========================================================== */
-
-/**
- * Create today's lock. If a stale lock exists for the same
- * (subject, chapter, type) with a different date, it gets
- * overwritten (via upsert on the composite key).
- */
-export async function createLock(subject, chapter, type, questions) {
-  const row = {
-    family_id: FAMILY_ID,
-    subject,
-    chapter,
-    type,
-    date: todayISO(),
-    questions: questions,
-    user_answers: new Array(questions.length).fill(null),
-    current_index: 0,
-    completed: false,
-    score: null,
-    percent: null,
-    started_at: new Date().toISOString(),
-    completed_at: null
-  };
-
-  try {
-    // Upsert so stale locks from previous days are replaced cleanly.
-    // The primary key is (family_id, subject, chapter, type, date),
-    // so different dates won't conflict.
-    const res = await supaInsert("quiz_locks", row);
-    return toLock(res && res[0] ? res[0] : row);
-  } catch (err) {
-    console.error("session-lock.createLock failed:", err);
-    // Return an in-memory lock so the quiz can still proceed
-    return toLock(row);
-  }
-}
-
-/* ==========================================================
-   Save answer / progress
-   ========================================================== */
-
-async function patchLock(subject, chapter, type, patch) {
-  const today = todayISO();
-  try {
-    const res = await supaPatch(
-      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
-      `&subject=eq.${encodeURIComponent(subject)}` +
-      `&chapter=eq.${encodeURIComponent(chapter)}` +
-      `&type=eq.${encodeURIComponent(type)}` +
-      `&date=eq.${today}`,
-      patch
-    );
-    return true;
-  } catch (err) {
-    console.error("session-lock.patchLock failed:", err);
-    return false;
-  }
-}
-
-/**
- * Save a single answer.
- * Note: to prevent races, the caller (quiz-engine) should
- * read the current user_answers from this.lock, mutate it,
- * and pass the FULL array. This avoids the "last write wins"
- * problem when two writes race.
- *
- * To keep the API simple for the caller, we accept a single
- * index+answer and do a read-modify-write. Fine for one kid
- * on one device at a time.
- */
-export async function saveAnswer(subject, chapter, type, index, answer) {
-  const lock = await getLock(subject, chapter, type);
-  if (!lock) return false;
-  if (index < 0 || index >= lock.userAnswers.length) return false;
-
-  const next = lock.userAnswers.slice();
-  next[index] = answer;
-  return patchLock(subject, chapter, type, { user_answers: next });
-}
-
-/**
- * Save current question index.
- */
-export async function saveProgress(subject, chapter, type, currentIndex) {
-  return patchLock(subject, chapter, type, { current_index: currentIndex });
-}
-
-/**
- * Mark lock complete.
- */
-export async function completeLock(subject, chapter, type, score, percent, userAnswers) {
-  const patch = {
-    completed: true,
-    score: score,
-    percent: percent,
-    completed_at: new Date().toISOString()
-  };
-  if (Array.isArray(userAnswers)) {
-    patch.user_answers = userAnswers;
-  }
-  return patchLock(subject, chapter, type, patch);
-}
-
-/* ==========================================================
-   Clear
-   ========================================================== */
-
-/**
- * Remove today's lock. Used for edge cases or manual reset.
- */
-export async function clearLock(subject, chapter, type) {
-  const today = todayISO();
-  try {
-    await supaDelete(
-      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}` +
-      `&subject=eq.${encodeURIComponent(subject)}` +
-      `&chapter=eq.${encodeURIComponent(chapter)}` +
-      `&type=eq.${encodeURIComponent(type)}` +
-      `&date=eq.${today}`
-    );
-    return true;
-  } catch (err) {
-    console.error("session-lock.clearLock failed:", err);
-    return false;
-  }
-}
-
-/* ==========================================================
-   Convenience
-   ========================================================== */
-
-export async function isCompletedToday(subject, chapter, type) {
-  const lock = await getLock(subject, chapter, type);
-  return lock !== null && lock.completed === true;
-}
-
-/* ==========================================================
-   Cleanup (optional — can be called on app boot)
-   Deletes locks older than 30 days.
-   ========================================================== */
-
-export async function cleanupOldLocks() {
-  try {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffISO = cutoff.toISOString().slice(0, 10);
-
-    await supaDelete(
-      `quiz_locks?family_id=eq.${encodeURIComponent(FAMILY_ID)}&date=lt.${cutoffISO}`
-    );
-    return true;
-  } catch (err) {
-    console.error("session-lock.cleanupOldLocks failed:", err);
-    return false;
-  }
-}
+export { getDeviceToken };

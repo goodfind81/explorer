@@ -1,33 +1,31 @@
 /* ==========================================================
    quiz-engine.js
-   Reusable quiz renderer for mini-checks and chapter quizzes.
+   Quiz renderer for mini-checks and chapter quizzes.
 
-   Integrates with session-lock.js (Supabase-backed) — each
-   (subject, chapter, type) has one session per calendar day,
-   shared across all devices.
+   Uses session-lock.js for atomic, multi-device locking.
+   All score computation is server-side (submit_quiz_attempt).
 
-   Key invariants:
-     1. Questions AND correct answers are captured ONCE at
-        quiz start and never re-read from the pool.
-     2. Score and missed list are computed at the END from
-        the answers, not accumulated during the quiz. This
-        survives page reloads and mid-quiz refreshes.
-     3. _finishQuiz refuses to submit if any question is
-        unanswered, forcing the user back to the first
-        blank question.
+   Flow:
+     1. claimLock()        — claim or resume today's quiz
+     2. render question
+     3. on answer: saveAnswer() (fire-and-forget)
+     4. on next: saveProgress() (fire-and-forget)
+     5. on last: submitAttempt() — single atomic request
+     6. render summary with server-computed score
+
+   Multi-device:
+     - If another device owns the lock, show takeover prompt
+     - Heartbeat every 60s. If lost, show takeover modal.
    ========================================================== */
 
-import { Storage } from "./storage.js";
 import {
-  getLock,
-  createLock,
+  claimLock,
   saveAnswer,
   saveProgress,
-  completeLock
+  submitAttempt,
+  startHeartbeat,
+  getDeviceToken
 } from "./session-lock.js";
-
-const HISTORY_META_KEY = "finalExamHistory";
-const HISTORY_LENGTH = 5;
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -38,30 +36,24 @@ function shuffle(arr) {
   return a;
 }
 
-function pickFreshQuizQuestions(pool, size, historyIds) {
-  const recentlyUsed = new Set(historyIds);
-  const withIds = pool.map(q => ({ ...q, id: q.question }));
-  const fresh = withIds.filter(q => !recentlyUsed.has(q.id));
-  const used = withIds.filter(q => recentlyUsed.has(q.id));
-  const freshShuffled = shuffle(fresh);
-  const usedShuffled = shuffle(used);
-  const chosen = freshShuffled.slice(0, size);
-  if (chosen.length < size) {
-    chosen.push(...usedShuffled.slice(0, size - chosen.length));
-  }
-  return shuffle(chosen);
-}
-
 /* ==========================================================
-   Normalize a question into a stable internal shape.
-   Once normalized, we never look at q.options[q.correct] again.
+   Normalize question to internal shape
    ========================================================== */
 
 function normalizeQuestion(rawQuestion) {
+  // Accept either {correct: index, options} OR {correctAnswer: text}
+  let correctAnswer;
+  if (rawQuestion.correctAnswer != null) {
+    correctAnswer = rawQuestion.correctAnswer;
+  } else if (rawQuestion.options && rawQuestion.correct != null) {
+    correctAnswer = rawQuestion.options[rawQuestion.correct];
+  } else {
+    correctAnswer = null;
+  }
   return {
     question: rawQuestion.question,
-    options: rawQuestion.options.slice(),
-    correctAnswer: rawQuestion.options[rawQuestion.correct],
+    options: (rawQuestion.options || []).slice(),
+    correctAnswer: correctAnswer,
     explanation: rawQuestion.explanation || ""
   };
 }
@@ -78,116 +70,169 @@ export class QuizEngine {
     this.currentIndex = 0;
     this.answered = false;
     this.startTime = 0;
-    this.lock = null;
     this.userAnswers = [];
-    this.reviewMode = false;
-    this.reviewData = null;
+    this.heartbeat = null;
+    this.ownedByThisDevice = true;   // flips false when taken over
   }
 
   async start() {
-    const { mode, subject, chapter } = this.config;
+    const { mode, subject, chapter, pool, count } = this.config;
 
-    if (mode !== "final") {
-      let existingLock = null;
-      try {
-        existingLock = await getLock(subject, chapter, mode);
-      } catch (err) {
-        console.warn("Could not check lock (offline?):", err);
-      }
-
-      if (existingLock) {
-        this.lock = existingLock;
-        this.questions = existingLock.questions.map(normalizeQuestion);
-        this.currentIndex = existingLock.currentIndex || 0;
-        this.userAnswers = (existingLock.userAnswers || new Array(this.questions.length).fill(null))
-          .slice(0, this.questions.length);
-        while (this.userAnswers.length < this.questions.length) {
-          this.userAnswers.push(null);
-        }
-
-        if (existingLock.completed) {
-          this.reviewMode = true;
-          this._renderCompletedView();
-          return;
-        }
-
-        this.startTime = existingLock.startedAt || Date.now();
-        this._renderQuestion();
-        return;
-      }
-    }
-
-    const rawQuestions = await this._pickQuestions();
-    if (rawQuestions.length === 0) {
-      this.container.innerHTML = `<div class="empty-state">No questions available for this quiz yet.</div>`;
+    // Non-locked modes (final exam) skip the lock system entirely
+    if (mode === "final") {
+      const rawQuestions = shuffle(pool).slice(0, count);
+      this.questions = rawQuestions.map(normalizeQuestion);
+      this.userAnswers = new Array(this.questions.length).fill(null);
+      this.currentIndex = 0;
+      this.answered = false;
+      this.startTime = Date.now();
+      this.ownedByThisDevice = true;
+      this._renderQuestion();
       return;
     }
-    this.questions = rawQuestions.map(normalizeQuestion);
-    this.userAnswers = new Array(this.questions.length).fill(null);
 
-    if (mode !== "final") {
-      try {
-        this.lock = await createLock(subject, chapter, mode, this.questions);
-      } catch (err) {
-        console.warn("Could not create lock:", err);
-        this.lock = null;
-      }
+    // Build the question pool to seed the lock (if it needs creating)
+    const rawQuestions = shuffle(pool).slice(0, count);
+    const questionsForLock = rawQuestions.map(normalizeQuestion);
+
+    // Claim the lock
+    let claimResult;
+    try {
+      claimResult = await claimLock(subject, chapter, mode, questionsForLock, false);
+    } catch (err) {
+      this.container.innerHTML = `<div class="empty-state">Could not open the quiz. Check your connection and try again.</div>`;
+      console.error(err);
+      return;
     }
 
-    this.currentIndex = 0;
+    if (claimResult.action === "completed") {
+      // Show review
+      this.questions = claimResult.lock.questions.map(normalizeQuestion);
+      this.userAnswers = claimResult.lock.userAnswers || [];
+      while (this.userAnswers.length < this.questions.length) this.userAnswers.push(null);
+      this._renderCompletedView(claimResult.lock);
+      return;
+    }
+
+    if (claimResult.needsTakeover) {
+      // Another device owns this quiz. Ask the user.
+      this._renderTakeoverPrompt(claimResult.lock, questionsForLock);
+      return;
+    }
+
+    // We own it — resume or start fresh
+    this._initializeFromLock(claimResult.lock);
+  }
+
+  _initializeFromLock(lock) {
+    const { subject, chapter, mode } = this.config;
+
+    // If the lock has no questions (shouldn't happen), fall back to fresh
+    this.questions = (lock.questions && lock.questions.length > 0)
+      ? lock.questions.map(normalizeQuestion)
+      : this.questions;
+
+    this.userAnswers = (lock.userAnswers || []).slice();
+    while (this.userAnswers.length < this.questions.length) this.userAnswers.push(null);
+
+    // Resume at first unanswered question, or saved index
+    let startIndex = lock.currentIndex || 0;
+    if (startIndex >= this.questions.length) {
+      // Find first unanswered instead
+      const firstUnanswered = this.userAnswers.findIndex(a => a == null);
+      startIndex = firstUnanswered === -1 ? 0 : firstUnanswered;
+    }
+    this.currentIndex = startIndex;
     this.answered = false;
-    this.startTime = Date.now();
+    this.startTime = lock.startedAt || Date.now();
+    this.ownedByThisDevice = true;
+
+    // Start heartbeat
+    this._beginHeartbeat();
+
     this._renderQuestion();
   }
 
-  async _pickQuestions() {
-    const { mode, pool, count, allChapters } = this.config;
+  _beginHeartbeat() {
+    const { subject, chapter, mode } = this.config;
+    if (mode === "final") return;
 
-    if (mode === "final") {
-      let combined = [];
-      allChapters.forEach(ch => {
-        ch.chapterQuiz.forEach(q => {
-          combined.push({ ...q, _chapterId: ch.chapter, _chapterName: ch.chapterName });
-        });
-      });
-      const history = (await Storage.getMeta(HISTORY_META_KEY)) || [];
-      const historyIds = Array.isArray(history) && Array.isArray(history[0])
-        ? history.flat()
-        : (Array.isArray(history) ? history : []);
-      const chosen = pickFreshQuizQuestions(combined, count, historyIds);
+    if (this.heartbeat) this.heartbeat.stop();
+    this.heartbeat = startHeartbeat(subject, chapter, mode, (reason) => {
+      // Lost ownership
+      this.ownedByThisDevice = false;
+      this._renderTakeoverModal("Another device has taken over this quiz.");
+    });
+  }
 
-      const newRun = chosen.map(q => q.id);
-      const updatedHistory = [newRun, ...(Array.isArray(history) ? history : [])].slice(0, HISTORY_LENGTH);
-      await Storage.setMeta(HISTORY_META_KEY, updatedHistory);
-
-      return chosen;
+  _stopHeartbeat() {
+    if (this.heartbeat) {
+      this.heartbeat.stop();
+      this.heartbeat = null;
     }
-
-    return shuffle(pool).slice(0, count);
   }
 
   /* ==========================================================
-     Score / missed computation
+     Takeover prompt / modal
      ========================================================== */
 
-  _computeScoreAndMissed() {
-    let score = 0;
-    const missed = [];
-    for (let i = 0; i < this.questions.length; i++) {
-      const q = this.questions[i];
-      const userAns = this.userAnswers[i];
-      if (userAns != null && userAns === q.correctAnswer) {
-        score++;
-      } else {
-        missed.push({
-          question: q.question,
-          correctAnswer: q.correctAnswer,
-          userAnswer: userAns || null,
-          explanation: q.explanation
-        });
+  _renderTakeoverPrompt(lock, questionsForLock) {
+    this.container.innerHTML = `
+      <div class="quiz-takeover-overlay">
+        <div class="quiz-takeover-modal">
+          <div class="quiz-takeover-emoji">🔄</div>
+          <div class="quiz-takeover-title">Quiz in progress elsewhere</div>
+          <div class="quiz-takeover-body">
+            This quiz is currently open on another device.
+            Do you want to continue here? The other device will
+            no longer be able to answer questions.
+          </div>
+          <div class="quiz-takeover-actions">
+            <button class="section-back-btn" id="takeoverCancel">No, go back</button>
+            <button class="section-next-btn" id="takeoverContinue">Yes, continue here</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.container.querySelector("#takeoverCancel").addEventListener("click", () => {
+      if (typeof this.config.onExit === "function") this.config.onExit();
+      else if (window.App && window.App.goHome) window.App.goHome();
+    });
+
+    this.container.querySelector("#takeoverContinue").addEventListener("click", async () => {
+      try {
+        const result = await claimLock(
+          this.config.subject, this.config.chapter, this.config.mode,
+          questionsForLock, true
+        );
+        this._initializeFromLock(result.lock);
+      } catch (err) {
+        console.error("Takeover failed:", err);
+        alert("Could not take over the quiz. Try again.");
       }
-    }
-    return { score, missed };
+    });
+  }
+
+  _renderTakeoverModal(message) {
+    this._stopHeartbeat();
+    const overlay = document.createElement("div");
+    overlay.className = "quiz-takeover-overlay";
+    overlay.innerHTML = `
+      <div class="quiz-takeover-modal">
+        <div class="quiz-takeover-emoji">⚠️</div>
+        <div class="quiz-takeover-title">Quiz taken over</div>
+        <div class="quiz-takeover-body">${message}</div>
+        <div class="quiz-takeover-actions">
+          <button class="section-next-btn" id="takeoverOk">OK</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector("#takeoverOk").addEventListener("click", () => {
+      overlay.remove();
+      if (window.App && window.App.goHome) window.App.goHome();
+    });
   }
 
   /* ==========================================================
@@ -205,6 +250,7 @@ export class QuizEngine {
     this.answered = false;
 
     const pct = Math.round((this.currentIndex / this.questions.length) * 100);
+    const priorAnswer = this.userAnswers[this.currentIndex];
 
     this.container.innerHTML = `
       <div class="quiz-progress-bar">
@@ -223,9 +269,16 @@ export class QuizEngine {
     const buttons = this.container.querySelectorAll(".option-btn");
     const feedback = this.container.querySelector(".quiz-feedback");
 
+    // If this question was already answered (resumed from another device),
+    // let the user re-answer. We don't show the prior selection.
+
     buttons.forEach(btn => {
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", () => {
         if (this.answered) return;
+        if (!this.ownedByThisDevice) {
+          this._renderTakeoverModal("This quiz was taken over by another device.");
+          return;
+        }
         this.answered = true;
 
         const picked = btn.dataset.answer;
@@ -246,14 +299,22 @@ export class QuizEngine {
           feedback.innerHTML = `<strong>❌ Not quite.</strong>${q.explanation || ""}`;
         }
 
-        if (this.lock && this.config.mode !== "final") {
+        // Save answer (fire-and-forget)
+        if (this.config.mode !== "final") {
           saveAnswer(
             this.config.subject,
             this.config.chapter,
             this.config.mode,
             this.currentIndex,
             picked
-          ).catch(err => console.warn("Could not save answer:", err));
+          ).then(res => {
+            if (res && res.ok === false) {
+              if (res.reason === "not_owner") {
+                this.ownedByThisDevice = false;
+                this._renderTakeoverModal("Another device has taken over this quiz.");
+              }
+            }
+          }).catch(() => {});
         }
 
         const nextBtn = document.createElement("button");
@@ -262,13 +323,11 @@ export class QuizEngine {
           ? "See Results →" : "Next Question →";
         nextBtn.addEventListener("click", () => {
           this.currentIndex++;
-          if (this.lock && this.config.mode !== "final") {
+          if (this.config.mode !== "final") {
             saveProgress(
-              this.config.subject,
-              this.config.chapter,
-              this.config.mode,
+              this.config.subject, this.config.chapter, this.config.mode,
               this.currentIndex
-            ).catch(err => console.warn("Could not save progress:", err));
+            ).catch(() => {});
           }
           this._renderQuestion();
         });
@@ -283,7 +342,7 @@ export class QuizEngine {
      ========================================================== */
 
   async _finishQuiz() {
-    // Guard: don't allow finishing with unanswered questions
+    // Guard: no submission with blanks
     const firstUnanswered = this.userAnswers.findIndex(a => a == null);
     if (firstUnanswered !== -1) {
       alert(
@@ -295,81 +354,67 @@ export class QuizEngine {
       return;
     }
 
-    const total = this.questions.length;
-    const { score, missed } = this._computeScoreAndMissed();
-    const pct = Math.round((score / total) * 100);
+    this._stopHeartbeat();
+
+    const { mode, subject, subjectName, chapter, chapterName } = this.config;
     const duration = Math.round((Date.now() - this.startTime) / 1000);
 
-    if (this.lock && this.config.mode !== "final") {
-      try {
-        await completeLock(
-          this.config.subject,
-          this.config.chapter,
-          this.config.mode,
-          score,
-          pct,
-          this.userAnswers
-        );
-      } catch (err) {
-        console.warn("Could not complete lock:", err);
-      }
-    }
-
-    const attempt = {
-      id: `${this.config.mode}-${this.config.subject}-${this.config.chapter || "all"}-${Date.now()}`,
-      type: this.config.mode,
-      subject: this.config.subject,
-      subjectName: this.config.subjectName,
-      chapter: this.config.chapter || "all",
-      chapterName: this.config.chapterName || "All Chapters",
-      score: score,
-      total: total,
-      percent: pct,
-      duration: duration,
-      missed: missed,
-      questions: this.questions.map((q, i) => ({
-        question: q.question,
-        correctAnswer: q.correctAnswer,
-        userAnswer: this.userAnswers[i] || null,
-        explanation: q.explanation
-      })),
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      await Storage.saveAttempt(attempt);
-    } catch (err) {
-      console.error("Could not save attempt to Supabase:", err);
-      alert(
-        "⚠️ Your score couldn't be saved to the cloud. " +
-        "Check your internet connection. " +
-        "The quiz is marked complete for today, but your points may not be awarded."
-      );
-    }
-
-    if (typeof this.config.onComplete === "function") {
-      try {
-        await this.config.onComplete(attempt);
-      } catch (err) {
-        console.warn("onComplete callback failed:", err);
-      }
-    }
-
-    if (this.config.mode === "chapter" && pct === 100) {
-      this._renderPerfectScoreCelebration(attempt);
+    // Final exam: no lock, score client-side, no server submission
+    if (mode === "final") {
+      this._renderFinalExamSummary(duration);
       return;
     }
 
-    this._renderSummary(attempt);
+    // Submit to server for atomic score + attempt + points
+    let result;
+    try {
+      result = await submitAttempt(
+        subject, subjectName, chapter, chapterName, mode,
+        this.userAnswers, duration
+      );
+    } catch (err) {
+      console.error("submitAttempt failed:", err);
+      this.container.innerHTML = `
+        <div class="quiz-summary">
+          <div class="quiz-summary-emoji">⚠️</div>
+          <div class="quiz-summary-text">Could not save your score</div>
+          <div class="quiz-summary-sub">
+            Check your internet connection and try again.
+          </div>
+          <button class="quiz-restart" onclick="App.goHome()">🏠 Back to Home</button>
+        </div>
+      `;
+      return;
+    }
+
+    if (!result || result.ok === false) {
+      // Server refused
+      if (result && result.reason === "already_submitted") {
+        // Already submitted elsewhere
+        this._renderTakeoverModal("This quiz was already submitted from another device.");
+      } else if (result && result.reason === "not_owner") {
+        this._renderTakeoverModal("Another device has taken over this quiz.");
+      } else {
+        alert("Could not submit the quiz. Reason: " + (result ? result.reason : "unknown"));
+      }
+      return;
+    }
+
+    // Success — render based on score
+    const { score, total, percent } = result;
+
+    if (mode === "chapter" && percent === 100) {
+      this._renderPerfectScoreCelebration(score, total);
+      return;
+    }
+    this._renderSummaryFromResult(score, total, percent);
   }
 
   /* ==========================================================
-     Summary
+     Summary (server-computed result)
      ========================================================== */
 
-  _renderSummary(attempt) {
-    const { score, total, percent, missed } = attempt;
-
+  _renderSummaryFromResult(score, total, percent) {
     let emoji, message;
     if (percent === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
     else if (percent >= 80) { emoji = "🎉"; message = "Amazing work!"; }
@@ -377,8 +422,18 @@ export class QuizEngine {
     else if (percent >= 40) { emoji = "📖"; message = "Good try — review the study guide."; }
     else { emoji = "💪"; message = "Keep practicing! Read the study guide and try again."; }
 
+    // Compute missed list from local state for display
+    const missed = [];
+    for (let i = 0; i < this.questions.length; i++) {
+      const q = this.questions[i];
+      const ua = this.userAnswers[i];
+      if (ua !== q.correctAnswer) {
+        missed.push({ question: q.question, correctAnswer: q.correctAnswer, explanation: q.explanation });
+      }
+    }
+
     let missedHtml = "";
-    if (missed && missed.length > 0) {
+    if (missed.length > 0) {
       missedHtml = `
         <div class="missed-list">
           <h4>📝 Review these questions you missed:</h4>
@@ -393,37 +448,38 @@ export class QuizEngine {
       `;
     }
 
-    const showLockedMessage = this.config.mode !== "final";
-
     this.container.innerHTML = `
       <div class="quiz-summary">
         <div class="quiz-summary-emoji">${emoji}</div>
         <div class="quiz-summary-text">You scored ${score} / ${total} (${percent}%)</div>
         <div class="quiz-summary-sub">${message}</div>
         ${missedHtml}
-        ${showLockedMessage ? `
-          <div class="quiz-locked-msg">
-            🔒 This quiz is done for today. Come back tomorrow for a fresh one!
-          </div>
-        ` : `
-          <button class="quiz-restart" id="quizRestartBtn">Try Again 🔄</button>
-        `}
+        <div class="quiz-locked-msg">
+          🔒 This quiz is done for today. Come back tomorrow for a fresh one!
+        </div>
       </div>
     `;
-
-    const restartBtn = this.container.querySelector("#quizRestartBtn");
-    if (restartBtn) {
-      restartBtn.addEventListener("click", () => this.start());
-    }
   }
 
-  /* ==========================================================
-     Perfect Score celebration
-     ========================================================== */
+  _renderFinalExamSummary(duration) {
+    let score = 0;
+    for (let i = 0; i < this.questions.length; i++) {
+      if (this.userAnswers[i] === this.questions[i].correctAnswer) score++;
+    }
+    const total = this.questions.length;
+    const percent = Math.round((score / total) * 100);
 
-  _renderPerfectScoreCelebration(attempt) {
-    const { total } = attempt;
+    this._renderSummaryFromResult(score, total, percent);
+    // Re-render without the "done for today" message for final exam
+    this.container.querySelector(".quiz-locked-msg")?.remove();
+    const btn = document.createElement("button");
+    btn.className = "quiz-restart";
+    btn.textContent = "Try Again 🔄";
+    btn.addEventListener("click", () => this.start());
+    this.container.querySelector(".quiz-summary")?.appendChild(btn);
+  }
 
+  _renderPerfectScoreCelebration(score, total) {
     const confettiPieces = Array.from({ length: 30 }, (_, i) => {
       const left = Math.random() * 100;
       const delay = Math.random() * 1.5;
@@ -434,13 +490,11 @@ export class QuizEngine {
     this.container.innerHTML = `
       <div class="dh-celebration dh-celebration-perfect">
         <div class="dh-confetti-container">${confettiPieces}</div>
-
         <div class="dh-celebration-content dh-celebration-content-gold">
           <div class="dh-celebration-emoji">⭐</div>
           <div class="dh-celebration-title dh-celebration-title-gold">PERFECT SCORE!</div>
           <div class="dh-celebration-skill">${this.config.chapterName || "Chapter Quiz"}</div>
           <div class="dh-celebration-sub">You got all ${total} right — 100%!</div>
-
           <div class="dh-celebration-actions">
             <button class="dh-check-btn" onclick="App.goHome()">🏠 Back to Home</button>
           </div>
@@ -450,11 +504,10 @@ export class QuizEngine {
   }
 
   /* ==========================================================
-     Completed review view
+     Completed review (returned when the lock is already done)
      ========================================================== */
 
-  _renderCompletedView() {
-    const lock = this.lock;
+  _renderCompletedView(lock) {
     const percent = lock.percent;
     const score = lock.score;
     const total = this.questions.length;
@@ -489,11 +542,9 @@ export class QuizEngine {
         <div class="quiz-summary-emoji">${emoji}</div>
         <div class="quiz-summary-text">You scored ${score} / ${total} (${percent}%)</div>
         <div class="quiz-summary-sub">${message}</div>
-
         <div class="quiz-locked-msg">
           🔒 This quiz is done for today. Come back tomorrow for a fresh one!
         </div>
-
         <div class="quiz-review-list">
           <h4>📋 Today's Answers</h4>
           ${reviewHtml}

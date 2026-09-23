@@ -218,7 +218,7 @@ export const chapter = {
     {
       question: "Estimate 61.4 + 88.3 by rounding each addend to the nearest whole number.",
       options: ["140", "149", "150", "160"],
-      correct: 2,
+      correct: 1,
       explanation: "61.4 → 61. 88.3 → 88. 61 + 88 = 149. Since the question says round each addend to the nearest whole number, the estimate is 149."
     },
     {
