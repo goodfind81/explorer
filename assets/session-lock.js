@@ -174,13 +174,17 @@ export async function saveProgress(subject, chapter, type, currentIndex) {
 /**
  * Mark lock complete.
  */
-export async function completeLock(subject, chapter, type, score, percent) {
-  return patchLock(subject, chapter, type, {
+export async function completeLock(subject, chapter, type, score, percent, userAnswers) {
+  const patch = {
     completed: true,
     score: score,
     percent: percent,
     completed_at: new Date().toISOString()
-  });
+  };
+  if (Array.isArray(userAnswers)) {
+    patch.user_answers = userAnswers;
+  }
+  return patchLock(subject, chapter, type, patch);
 }
 
 /* ==========================================================

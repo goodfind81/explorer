@@ -6,12 +6,15 @@
    (subject, chapter, type) has one session per calendar day,
    shared across all devices.
 
-   Celebrations:
-     - Chapter quiz at 100% → Perfect Score celebration (gold)
-     - Mini-check → standard summary
-     - Final exam → standard summary with retry option
-
-   Points awarding is handled by the caller via onComplete.
+   Key invariants (fixed in this version):
+     1. Questions AND correct answers are captured ONCE at
+        quiz start and never re-read from the pool.
+     2. Score and missed list are computed at the END from
+        the answers, not accumulated during the quiz. This
+        survives page reloads and mid-quiz refreshes.
+     3. saveAnswer stores the correct answer text alongside
+        the user's pick, so the review view is not dependent
+        on the pool's option order.
    ========================================================== */
 
 import { Storage } from "./storage.js";
@@ -50,6 +53,20 @@ function pickFreshQuizQuestions(pool, size, historyIds) {
 }
 
 /* ==========================================================
+   Normalize a question into a stable internal shape.
+   Once normalized, we never look at q.options[q.correct] again.
+   ========================================================== */
+
+function normalizeQuestion(rawQuestion) {
+  return {
+    question: rawQuestion.question,
+    options: rawQuestion.options.slice(),
+    correctAnswer: rawQuestion.options[rawQuestion.correct],
+    explanation: rawQuestion.explanation || ""
+  };
+}
+
+/* ==========================================================
    QuizEngine class
    ========================================================== */
 
@@ -57,13 +74,12 @@ export class QuizEngine {
   constructor(container, config) {
     this.container = container;
     this.config = config;
-    this.questions = [];
+    this.questions = [];       // normalized {question, options, correctAnswer, explanation}
     this.currentIndex = 0;
-    this.score = 0;
     this.answered = false;
-    this.missed = [];
     this.startTime = 0;
     this.lock = null;
+    this.userAnswers = [];      // "user's picked option text" or null, one per question
     this.reviewMode = false;
     this.reviewData = null;
   }
@@ -71,7 +87,6 @@ export class QuizEngine {
   async start() {
     const { mode, subject, chapter } = this.config;
 
-    // Mini and chapter use daily locks; final does not
     if (mode !== "final") {
       let existingLock = null;
       try {
@@ -82,16 +97,16 @@ export class QuizEngine {
 
       if (existingLock) {
         this.lock = existingLock;
-        this.questions = existingLock.questions;
+        this.questions = existingLock.questions.map(normalizeQuestion);
         this.currentIndex = existingLock.currentIndex || 0;
+        this.userAnswers = (existingLock.userAnswers || new Array(this.questions.length).fill(null))
+          .slice(0, this.questions.length);
+        while (this.userAnswers.length < this.questions.length) {
+          this.userAnswers.push(null);
+        }
 
         if (existingLock.completed) {
           this.reviewMode = true;
-          this.reviewData = {
-            score: existingLock.score,
-            percent: existingLock.percent,
-            userAnswers: existingLock.userAnswers
-          };
           this._renderCompletedView();
           return;
         }
@@ -103,13 +118,14 @@ export class QuizEngine {
     }
 
     // No lock — generate fresh questions
-    this.questions = await this._pickQuestions();
-    if (this.questions.length === 0) {
+    const rawQuestions = await this._pickQuestions();
+    if (rawQuestions.length === 0) {
       this.container.innerHTML = `<div class="empty-state">No questions available for this quiz yet.</div>`;
       return;
     }
+    this.questions = rawQuestions.map(normalizeQuestion);
+    this.userAnswers = new Array(this.questions.length).fill(null);
 
-    // Create the lock (Supabase) for mini/chapter
     if (mode !== "final") {
       try {
         this.lock = await createLock(subject, chapter, mode, this.questions);
@@ -120,9 +136,7 @@ export class QuizEngine {
     }
 
     this.currentIndex = 0;
-    this.score = 0;
     this.answered = false;
-    this.missed = [];
     this.startTime = Date.now();
     this._renderQuestion();
   }
@@ -154,6 +168,30 @@ export class QuizEngine {
   }
 
   /* ==========================================================
+     Score / missed computation (single source of truth)
+     ========================================================== */
+
+  _computeScoreAndMissed() {
+    let score = 0;
+    const missed = [];
+    for (let i = 0; i < this.questions.length; i++) {
+      const q = this.questions[i];
+      const userAns = this.userAnswers[i];
+      if (userAns != null && userAns === q.correctAnswer) {
+        score++;
+      } else {
+        missed.push({
+          question: q.question,
+          correctAnswer: q.correctAnswer,
+          userAnswer: userAns || null,
+          explanation: q.explanation
+        });
+      }
+    }
+    return { score, missed };
+  }
+
+  /* ==========================================================
      Rendering a question
      ========================================================== */
 
@@ -164,9 +202,12 @@ export class QuizEngine {
     }
 
     const q = this.questions[this.currentIndex];
-    const correctText = q.options[q.correct];
     const shuffledOpts = shuffle(q.options);
     this.answered = false;
+
+    // If the user already answered this question (e.g., after refresh),
+    // we don't show the previous answer — they get a fresh shot at it.
+    // (Their progress saves; they just don't see the prior pick.)
 
     const pct = Math.round((this.currentIndex / this.questions.length) * 100);
 
@@ -195,23 +236,21 @@ export class QuizEngine {
         const picked = btn.dataset.answer;
         buttons.forEach(b => (b.disabled = true));
 
-        if (picked === correctText) {
+        // Store the user's pick in memory
+        this.userAnswers[this.currentIndex] = picked;
+
+        // Display feedback
+        if (picked === q.correctAnswer) {
           btn.classList.add("correct");
-          this.score++;
           feedback.className = "quiz-feedback correct show";
           feedback.innerHTML = `<strong>✅ Correct!</strong>${q.explanation || ""}`;
         } else {
           btn.classList.add("incorrect");
           buttons.forEach(b => {
-            if (b.dataset.answer === correctText) b.classList.add("correct");
+            if (b.dataset.answer === q.correctAnswer) b.classList.add("correct");
           });
           feedback.className = "quiz-feedback incorrect show";
           feedback.innerHTML = `<strong>❌ Not quite.</strong>${q.explanation || ""}`;
-          this.missed.push({
-            question: q.question,
-            correctAnswer: correctText,
-            explanation: q.explanation || ""
-          });
         }
 
         // Save answer to Supabase (non-blocking, best-effort)
@@ -254,18 +293,20 @@ export class QuizEngine {
 
   async _finishQuiz() {
     const total = this.questions.length;
-    const pct = Math.round((this.score / total) * 100);
+    const { score, missed } = this._computeScoreAndMissed();
+    const pct = Math.round((score / total) * 100);
     const duration = Math.round((Date.now() - this.startTime) / 1000);
 
-    // Mark lock complete
+    // Save the merged user answers back to the lock
     if (this.lock && this.config.mode !== "final") {
       try {
         await completeLock(
           this.config.subject,
           this.config.chapter,
           this.config.mode,
-          this.score,
-          pct
+          score,
+          pct,
+          this.userAnswers
         );
       } catch (err) {
         console.warn("Could not complete lock:", err);
@@ -280,21 +321,20 @@ export class QuizEngine {
       subjectName: this.config.subjectName,
       chapter: this.config.chapter || "all",
       chapterName: this.config.chapterName || "All Chapters",
-      score: this.score,
+      score: score,
       total: total,
       percent: pct,
       duration: duration,
-      missed: this.missed,
-      // Save the full question set so the review view can render it
+      missed: missed,
       questions: this.questions.map((q, i) => ({
         question: q.question,
-        correctAnswer: q.options[q.correct],
-        userAnswer: this._getUserAnswerForIndex(i)
+        correctAnswer: q.correctAnswer,
+        userAnswer: this.userAnswers[i] || null,
+        explanation: q.explanation
       })),
       timestamp: new Date().toISOString()
     };
 
-    // Save attempt to Supabase — LOUD on failure
     try {
       await Storage.saveAttempt(attempt);
     } catch (err) {
@@ -306,7 +346,6 @@ export class QuizEngine {
       );
     }
 
-    // Notify caller (used by chapter-view.js to award points)
     if (typeof this.config.onComplete === "function") {
       try {
         await this.config.onComplete(attempt);
@@ -315,7 +354,6 @@ export class QuizEngine {
       }
     }
 
-    // Celebration routing
     if (this.config.mode === "chapter" && pct === 100) {
       this._renderPerfectScoreCelebration(attempt);
       return;
@@ -324,38 +362,26 @@ export class QuizEngine {
     this._renderSummary(attempt);
   }
 
-  /**
-   * Retrieve the user's answer for a given index.
-   * Prefers the lock's stored answers, falls back to the current in-memory state.
-   */
-  _getUserAnswerForIndex(index) {
-    if (this.lock && this.lock.userAnswers && this.lock.userAnswers[index] != null) {
-      return this.lock.userAnswers[index];
-    }
-    return null;
-  }
-
   /* ==========================================================
      Summary
      ========================================================== */
 
   _renderSummary(attempt) {
-    const total = attempt.total;
-    const pct = attempt.percent;
+    const { score, total, percent, missed } = attempt;
 
     let emoji, message;
-    if (pct === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
-    else if (pct >= 80) { emoji = "🎉"; message = "Amazing work!"; }
-    else if (pct >= 60) { emoji = "👍"; message = "Great job!"; }
-    else if (pct >= 40) { emoji = "📖"; message = "Good try — review the study guide."; }
+    if (percent === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
+    else if (percent >= 80) { emoji = "🎉"; message = "Amazing work!"; }
+    else if (percent >= 60) { emoji = "👍"; message = "Great job!"; }
+    else if (percent >= 40) { emoji = "📖"; message = "Good try — review the study guide."; }
     else { emoji = "💪"; message = "Keep practicing! Read the study guide and try again."; }
 
     let missedHtml = "";
-    if (this.missed.length > 0) {
+    if (missed && missed.length > 0) {
       missedHtml = `
         <div class="missed-list">
           <h4>📝 Review these questions you missed:</h4>
-          ${this.missed.map(m => `
+          ${missed.map(m => `
             <div class="missed-item">
               <div class="missed-q">${m.question}</div>
               <div class="missed-a">Correct answer: <span class="correct-ans">${m.correctAnswer}</span></div>
@@ -371,7 +397,7 @@ export class QuizEngine {
     this.container.innerHTML = `
       <div class="quiz-summary">
         <div class="quiz-summary-emoji">${emoji}</div>
-        <div class="quiz-summary-text">You scored ${this.score} / ${total} (${pct}%)</div>
+        <div class="quiz-summary-text">You scored ${score} / ${total} (${percent}%)</div>
         <div class="quiz-summary-sub">${message}</div>
         ${missedHtml}
         ${showLockedMessage ? `
@@ -395,7 +421,7 @@ export class QuizEngine {
      ========================================================== */
 
   _renderPerfectScoreCelebration(attempt) {
-    const total = attempt.total;
+    const { total } = attempt;
 
     const confettiPieces = Array.from({ length: 30 }, (_, i) => {
       const left = Math.random() * 100;
@@ -423,11 +449,14 @@ export class QuizEngine {
   }
 
   /* ==========================================================
-     Completed review view (locked from earlier today)
+     Completed review view
      ========================================================== */
 
   _renderCompletedView() {
-    const { score, percent, userAnswers } = this.reviewData;
+    const lock = this.lock;
+    const percent = lock.percent;
+    const score = lock.score;
+    const total = this.questions.length;
 
     let emoji, message;
     if (percent === 100) { emoji = "🌟"; message = "Perfect! Outstanding!"; }
@@ -438,9 +467,8 @@ export class QuizEngine {
 
     let reviewHtml = "";
     this.questions.forEach((q, i) => {
-      const correctText = q.options[q.correct];
-      const userAns = userAnswers[i];
-      const isCorrect = userAns === correctText;
+      const userAns = this.userAnswers[i];
+      const isCorrect = userAns === q.correctAnswer;
       reviewHtml += `
         <div class="review-item ${isCorrect ? "review-correct" : "review-incorrect"}">
           <div class="review-q">${i + 1}. ${q.question}</div>
@@ -448,7 +476,7 @@ export class QuizEngine {
             ${isCorrect
               ? `<span class="review-ok">✓ Your answer: ${userAns}</span>`
               : `<span class="review-bad">✗ Your answer: ${userAns || "(no answer)"}</span>
-                 <span class="review-correct-answer">Correct: ${correctText}</span>`}
+                 <span class="review-correct-answer">Correct: ${q.correctAnswer}</span>`}
           </div>
           ${q.explanation ? `<div class="review-explain">${q.explanation}</div>` : ""}
         </div>
@@ -458,7 +486,7 @@ export class QuizEngine {
     this.container.innerHTML = `
       <div class="quiz-summary">
         <div class="quiz-summary-emoji">${emoji}</div>
-        <div class="quiz-summary-text">You scored ${score} / ${this.questions.length} (${percent}%)</div>
+        <div class="quiz-summary-text">You scored ${score} / ${total} (${percent}%)</div>
         <div class="quiz-summary-sub">${message}</div>
 
         <div class="quiz-locked-msg">
