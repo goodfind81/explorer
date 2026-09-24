@@ -25,7 +25,7 @@
      The token is included in every write. Server checks ownership.
    ========================================================== */
 
-import { supabaseRpc, FAMILY_ID, SUPABASE_URL, SUPABASE_KEY } from "./supabase-config.js";
+import { FAMILY_ID, SUPABASE_URL, SUPABASE_KEY } from "./supabase-config.js";
 
 /* ==========================================================
    Device token (per browser tab, persists across reloads of
