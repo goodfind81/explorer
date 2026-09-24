@@ -10,5 +10,6 @@ import { chapter as ch5 } from "./chapter-05-measurement.js";
 import { chapter as ch6 } from "./chapter-06-variables.js";
 import { chapter as ch7 } from "./chapter-07-data-and-graphs.js";
 import { chapter as ch8 } from "./chapter-08-bouncy-ball-lab.js";
+import { chapter as ch9 } from "./chapter-09-metric-system.js";
 
-export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8];
+export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9];
