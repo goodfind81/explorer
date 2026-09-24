@@ -61,7 +61,7 @@ export function roundToPlace(targetPlaceOrOpts, opts = {}) {
   const mc = opts.multipleChoice !== false;
   const diff = opts.difficulty || "medium";
 
-  // ... rest of the function stays exactly the same
+  // Generate a random decimal based on target place and difficulty
   let value;
   const placeValue = {
     "thousand":   { decimals: 0, maxWhole: 999999 },
@@ -72,10 +72,35 @@ export function roundToPlace(targetPlaceOrOpts, opts = {}) {
   }[targetPlace];
 
   if (!placeValue) throw new Error("Unknown target place: " + targetPlace);
-  
-  // ... everything else unchanged
-}
 
+  const wholePart = randInt(1, placeValue.maxWhole);
+  let decimalPart = "";
+  for (let i = 0; i < placeValue.decimals; i++) {
+    decimalPart += randInt(0, 9);
+  }
+  value = decimalPart ? parseFloat(`${wholePart}.${decimalPart}`) : wholePart;
+
+  const answer = roundNumber(value, targetPlace);
+  const explanation = buildRoundingExplanation(value, targetPlace, answer);
+
+  if (!mc) {
+    return {
+      question: `Round ${value} to the nearest ${placeLabel(targetPlace)}.`,
+      answer: answer.toString(),
+      explanation
+    };
+  }
+
+  const choices = buildRoundingChoices(value, targetPlace, answer);
+  const correctIdx = choices.indexOf(answer.toString());
+
+  return {
+    question: `Round ${value} to the nearest ${placeLabel(targetPlace)}.`,
+    options: choices.map(c => c.toString()),
+    correct: correctIdx === -1 ? 0 : correctIdx,
+    explanation
+  };
+}
 function roundNumber(value, place) {
   const factor = {
     "whole": 1,
