@@ -46,6 +46,7 @@ function formatNumber(n) {
  * @param {string} targetPlace - "whole" | "tenth" | "hundredth" | "hundred" | "thousand"
  * @param {object} opts - { multipleChoice: bool, difficulty: "easy"|"medium"|"hard" }
  */
+
 export function roundToPlace(targetPlaceOrOpts, opts = {}) {
   // Support two calling conventions:
   //   1. roundToPlace("tenth")                     — positional
@@ -61,14 +62,20 @@ export function roundToPlace(targetPlaceOrOpts, opts = {}) {
   const mc = opts.multipleChoice !== false;
   const diff = opts.difficulty || "medium";
 
+  // Sometimes produce a "clean" number that already stops at the
+  // target place (e.g., 168.8 when rounding to the tenth), so the
+  // student learns what to do when there's no digit to round with.
+  const cleanChance = 0.2; // 20% of the time
+  const isClean = Math.random() < cleanChance;
+
   // Generate a random decimal based on target place and difficulty
   let value;
   const placeValue = {
     "thousand":   { decimals: 0, maxWhole: 999999 },
     "hundred":    { decimals: 0, maxWhole: 99999 },
-    "whole":      { decimals: randInt(1, 2), maxWhole: 999 },
-    "tenth":      { decimals: 2, maxWhole: 999 },
-    "hundredth":  { decimals: 3, maxWhole: 999 }
+    "whole":      { decimals: isClean ? 0 : randInt(1, 2), maxWhole: 999 },
+    "tenth":      { decimals: isClean ? 1 : 2, maxWhole: 999 },
+    "hundredth":  { decimals: isClean ? 2 : 3, maxWhole: 999 }
   }[targetPlace];
 
   if (!placeValue) throw new Error("Unknown target place: " + targetPlace);
@@ -101,6 +108,7 @@ export function roundToPlace(targetPlaceOrOpts, opts = {}) {
     explanation
   };
 }
+
 function roundNumber(value, place) {
   const factor = {
     "whole": 1,
@@ -135,14 +143,20 @@ function buildRoundingExplanation(value, place, answer) {
   const valueStr = value.toString();
   if (place === "whole") {
     const decimal = valueStr.split(".")[1] || "";
-    const firstDecimal = decimal[0] || "0";
+    const firstDecimal = decimal[0];
+    if (firstDecimal === undefined) {
+      return `${value} is already a whole number — there's no digit after the decimal point. So the answer stays the same: ${answer}. (Hint: imagine ${value}.0 — the 0 is less than 5, so you keep the whole number.)`;
+    }
     const roundsUp = parseInt(firstDecimal) >= 5;
     return `Look at the digit after the decimal: ${firstDecimal}. ${roundsUp ? "Since it's 5 or more, round UP." : "Since it's less than 5, keep the whole number."} So ${value} rounds to ${answer}.`;
   }
   if (place === "tenth" || place === "hundredth") {
     const decimals = valueStr.split(".")[1] || "";
     const idx = place === "tenth" ? 1 : 2;
-    const digitAfter = decimals[idx] || "0";
+    const digitAfter = decimals[idx];
+    if (digitAfter === undefined) {
+      return `${value} already stops at the ${place}s place. There's no digit after it to round with, so the answer stays the same: ${answer}. (Hint: imagine a 0 — ${value} = ${value}0 — and 0 is less than 5, so you keep the digit.)`;
+    }
     const roundsUp = parseInt(digitAfter) >= 5;
     return `Look at the digit to the right of the ${place}s place: ${digitAfter}. ${roundsUp ? "Since it's 5 or more, round UP." : "Since it's less than 5, keep the same."} So ${value} rounds to ${answer}.`;
   }
@@ -1129,5 +1143,90 @@ function buildMultiplicationExplanation(a, b, product) {
     steps.push(`• Final carry: ${carry}`);
   }
   steps.push(`Product: ${formatNumber(product)}`);
+  return steps.join("\n");
+}
+
+/* ==========================================================
+   SKILL: Multiply by 2-digit numbers (with zeros in factors)
+   Handles Lesson 3-6: multiply whole numbers where one or
+   both factors contain zeros.
+   ========================================================== */
+
+export function multiplyWithZeros(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+
+  // Pick factor sizes
+  const r = Math.random();
+  let a, b;
+
+  if (r < 0.35) {
+    // 3-digit factor with a zero × 2-digit multiplier
+    const zeroPlace = Math.random() < 0.5 ? "tens" : "ones";
+    if (zeroPlace === "tens") {
+      a = randInt(1, 9) * 100 + randInt(1, 9);
+    } else {
+      a = randInt(1, 9) * 100 + randInt(1, 9) * 10;
+    }
+    b = randInt(11, 49);
+  } else if (r < 0.7) {
+    // 3-digit factor with a zero × 2-digit multiplier (harder)
+    a = randInt(101, 909);
+    // Force a zero somewhere in a
+    const aStr = a.toString();
+    if (!aStr.includes("0")) {
+      // Replace one middle digit with 0
+      const idx = randInt(1, aStr.length - 1);
+      a = parseInt(aStr.substring(0, idx) + "0" + aStr.substring(idx + 1)) || a;
+    }
+    b = randInt(21, 79);
+  } else {
+    // 4-digit × 2-digit
+    a = randInt(1000, 9999);
+    b = randInt(11, 99);
+  }
+
+  const product = a * b;
+  const explanation = buildTwoDigitMultiplicationExplanation(a, b, product);
+
+  if (!mc) {
+    return {
+      question: `Find ${a} × ${b}.`,
+      answer: formatNumber(product),
+      explanation
+    };
+  }
+
+  // Distractors: common mistakes
+  const wrongA = formatNumber(a * b + 100);
+  const wrongB = formatNumber(a * b - 100);
+  const wrongC = formatNumber(a * b + 1000);
+  const choices = shuffleArray([
+    formatNumber(product),
+    wrongA,
+    wrongB,
+    wrongC
+  ]);
+  return {
+    question: `Find ${a} × ${b}.`,
+    options: choices,
+    correct: choices.indexOf(formatNumber(product)),
+    explanation
+  };
+}
+
+function buildTwoDigitMultiplicationExplanation(a, b, product) {
+  const onesDigit = b % 10;
+  const tensDigit = Math.floor(b / 10);
+
+  const partialOnes = a * onesDigit;
+  const partialTens = a * tensDigit * 10;
+
+  const steps = [];
+  steps.push(`Step 1: Multiply by the ones digit (${onesDigit}).`);
+  steps.push(`  ${a} × ${onesDigit} = ${formatNumber(partialOnes)}`);
+  steps.push(`Step 2: Multiply by the tens digit (${tensDigit}), remembering to place a 0 in the ones place.`);
+  steps.push(`  ${a} × ${tensDigit} = ${formatNumber(a * tensDigit)}, then × 10 = ${formatNumber(partialTens)}`);
+  steps.push(`Step 3: Add the partial products.`);
+  steps.push(`  ${formatNumber(partialOnes)} + ${formatNumber(partialTens)} = ${formatNumber(product)}`);
   return steps.join("\n");
 }
