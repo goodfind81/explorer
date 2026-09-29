@@ -33,7 +33,8 @@ import {
    ========================================================== */
 const SUBJECT_LOADERS = [
   { id: "science", name: "Science", icon: "🔬", loader: () => import("../data/science/subject.js") },
-  { id: "math",    name: "Math",    icon: "🔢", loader: () => import("../data/math/subject.js") }
+  { id: "math",    name: "Math",    icon: "🔢", loader: () => import("../data/math/subject.js") },
+  { id: "history", name: "History", icon: "📜", loader: () => import("../data/history/subject.js") }
 ];
 
 /* ==========================================================
