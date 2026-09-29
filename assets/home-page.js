@@ -106,9 +106,14 @@ export async function renderHomePage(container, subjects) {
   const rewardsHtml = buildRewardsBanner(balance, streak, pointsToday, totalEarned, redeemed);
 
   // Build subject cards
-  const order = ["math", "science"];
+  // Fixed order: Math, Science, History
+  const order = ["math", "science", "history"];
   const subjectsToShow = [];
-  order.forEach(id => { if (subjects[id]) subjectsToShow.push(subjects[id]); });
+
+  order.forEach(id => {
+    if (subjects[id]) subjectsToShow.push(subjects[id]);
+  });
+  // Anything not in the order list still gets appended (safety net)
   Object.values(subjects).forEach(s => {
     if (!order.includes(s.id)) subjectsToShow.push(s);
   });
