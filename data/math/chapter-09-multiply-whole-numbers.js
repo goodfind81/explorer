@@ -1,6 +1,6 @@
 /* ==========================================================
    Math Chapter 9 — Multiply Whole Numbers
-   Covers enVision Topic 3: Lessons 3-2, 3-3, 3-6.
+   Covers enVision Topic 3: Lessons 3-2, 3-3, 3-6, 3-7.
    Growing chapter — new lessons add new skills as they arrive.
    ========================================================== */
 
@@ -11,7 +11,7 @@ export const chapter = {
 
   studyGuideHtml: `
     <h2>✖️ Multiply Whole Numbers</h2>
-    <p>This chapter covers three big ideas: <strong>estimating products</strong>, <strong>multiplying by 1-digit numbers</strong>, and <strong>multiplying with zeros</strong>.</p>
+    <p>This chapter covers four big ideas: <strong>estimating products</strong>, <strong>multiplying by 1-digit numbers</strong>, <strong>multiplying with zeros</strong>, and <strong>using multiplication to solve multi-step problems</strong>.</p>
 
     <div class="study-guide">
       <div class="sg-row">
@@ -62,16 +62,59 @@ export const chapter = {
       </div>
 
       <div class="sg-row">
-        <span class="sg-label">Common Mistake</span>
-        <div class="sg-def" style="background:#FCE8E8; border-left-color: var(--accent-red);">
-          <strong>Forgetting the zero placeholder.</strong> When multiplying by the tens digit, you MUST add a 0 in the ones place of that partial product. Without it, the answer will be too small by a factor of 10.
+        <span class="sg-label">Big Idea 4 (Lesson 3-7) — Practice Multi-Digit Multiplication</span>
+        <div class="sg-def">
+          Lesson 3-7 pulls together everything: 1-digit multipliers, 2-digit multipliers, factors with zeros, and real-world word problems.<br><br>
+          <strong>The strategy is always the same three steps:</strong><br>
+          <strong>1. Estimate first.</strong> Round each factor to a friendly number and multiply in your head. This tells you roughly what the answer should be — so you can catch mistakes.<br>
+          <strong>2. Multiply using the Standard Algorithm.</strong> Line up place values. Regroup when needed.<br>
+          <strong>3. Check that the answer is reasonable.</strong> Does it match your estimate? If not, look for a mistake.
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Example — Estimate, Multiply, Check</span>
+        <div class="sg-def" style="background:#FFF9C4;">
+          <strong>Find 4 × (760 + 510).</strong><br><br>
+          <strong>Step 1 — Estimate:</strong> 760 + 510 = 1,270, so I need 4 × 1,270. Round 1,270 → 1,200. 4 × 1,200 = 4,800.<br>
+          <strong>Step 2 — Multiply:</strong> 4 × 1,270 = 5,080.<br>
+          <strong>Step 3 — Check:</strong> 5,080 is close to 4,800 → reasonable ✅
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Missing-Digit Puzzles</span>
+        <div class="sg-def">
+          Sometimes a problem gives you the <strong>product</strong> and one factor, but blanks out a digit. Your job is to find the missing digit.<br><br>
+          <strong>Example:</strong> 212 × ▢4 = 15,688. What is ▢?<br><br>
+          <strong>Strategy:</strong><br>
+          • <strong>Divide</strong> the product by the known factor: 15,688 ÷ 212 = 74.<br>
+          • Compare: ▢4 should be 74, so <strong>▢ = 7</strong>.<br>
+          • Check: 212 × 74 = 15,688 ✅<br><br>
+          <strong>Another way:</strong> estimate first. If 212 ≈ 200, then 15,688 ÷ 200 ≈ 78. So the missing digit is somewhere around 7.
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Real-World Multiplication Problems</span>
+        <div class="sg-def">
+          Many problems describe a real situation. Look for:<br><br>
+          • <strong>"Each" or "per"</strong> — signals multiplication (e.g., "$271 per month")<br>
+          • <strong>How many groups?</strong> — this is the multiplier (e.g., "12 months")<br>
+          • <strong>Units</strong> — dollars, miles, pounds, hours — keep them straight<br><br>
+          <strong>Example:</strong> "A cell phone bill is $271 per month. What is the yearly total?"<br>
+          → 12 × 271 = <strong>$3,252</strong>
         </div>
       </div>
     </div>
 
+    <div class="highlight">
+      <strong>Common Mistake:</strong> Forgetting the zero placeholder when multiplying by the tens digit. Without it, the answer will be too small by a factor of 10.
+    </div>
+
     <div class="fun-fact">
       <span>💡</span>
-      <div><strong>Einstein Wonders:</strong> The Standard Algorithm works the same whether there are 2, 3, or 4 digits, and whether or not there are zeros. You just keep going place by place — ones, then tens, then add.</div>
+      <div><strong>Einstein Wonders:</strong> The Standard Algorithm works the same whether there are 2, 3, or 4 digits, and whether or not there are zeros. You just keep going place by place — ones, then tens, then add. And estimating first is like a safety net for your math!</div>
     </div>
   `,
 
@@ -101,10 +144,10 @@ export const chapter = {
       explanation: "208 × 1 = 208. 208 × 3 = 624, then × 10 = 6,240. 208 + 6,240 = 6,448."
     },
     {
-      question: "Find 405 × 36.",
-      options: ["13,580", "14,580", "14,480", "15,580"],
-      correct: 1,
-      explanation: "405 × 6 = 2,430. 405 × 3 = 1,215, then × 10 = 12,150. 2,430 + 12,150 = 14,580."
+      question: "The product is 15,688. Fill in the blank: 212 × ▢4 = 15,688",
+      options: ["3", "5", "7", "9"],
+      correct: 2,
+      explanation: "Divide 15,688 ÷ 212 = 74. So the blank is 7 (making 74)."
     }
   ],
 
@@ -264,6 +307,72 @@ export const chapter = {
       ],
       correct: 0,
       explanation: "49 ≈ 50, 805 ≈ 800. 50 × 800 = 40,000. So 3,165 is way off — Sarah must have made a mistake."
+    },
+    // --- Lesson 3-7 problems: multi-step, real-world, missing-digit ---
+    {
+      question: "A cell phone bill is $271 per month. What is the yearly total?",
+      options: ["$2,710", "$3,252", "$2,982", "$3,522"],
+      correct: 1,
+      explanation: "There are 12 months in a year. 12 × 271 = 3,252. The yearly total is $3,252."
+    },
+    {
+      question: "Water costs $760 per quarter (4 times a year). What is the yearly cost?",
+      options: ["$1,520", "$2,280", "$3,040", "$4,560"],
+      correct: 2,
+      explanation: "4 × 760 = 3,040. The yearly water cost is $3,040."
+    },
+    {
+      question: "Carlos saves 18 cents every day for 365 days. How many cents does he save?",
+      options: ["5,670 cents", "6,570 cents", "6,750 cents", "7,560 cents"],
+      correct: 1,
+      explanation: "365 × 18 = 6,570. Carlos saves 6,570 cents (that's $65.70!)."
+    },
+    {
+      question: "A rectangular sports field is 72 yards long and 46 yards wide. What is the area in square yards?",
+      options: ["3,312", "3,232", "3,412", "3,512"],
+      correct: 0,
+      explanation: "Area = length × width = 72 × 46 = 3,312 square yards."
+    },
+    {
+      question: "The product is 15,688. What is the missing digit?  212 × ▢4 = 15,688",
+      options: ["3", "4", "7", "9"],
+      correct: 2,
+      explanation: "15,688 ÷ 212 = 74, so the blank is 7. Check: 212 × 74 = 15,688."
+    },
+    {
+      question: "The product is 22,718. What is the missing digit?  ▢14 × 37 = 22,718",
+      options: ["3", "4", "6", "7"],
+      correct: 2,
+      explanation: "22,718 ÷ 37 = 614, so the blank is 6. Check: 614 × 37 = 22,718."
+    },
+    {
+      question: "The product is 7,453. What is the missing digit?  257 × ▢9 = 7,453",
+      options: ["1", "2", "4", "7"],
+      correct: 1,
+      explanation: "7,453 ÷ 257 = 29, so the blank is 2. Check: 257 × 29 = 7,453."
+    },
+    {
+      question: "Before multiplying, Maya estimates 68 × 91 ≈ 70 × 90 = 6,300. Then she calculates 68 × 91 = 5,188. What does the estimate tell her?",
+      options: [
+        "Her exact answer is probably wrong — it's too far from 6,300",
+        "Her exact answer is reasonable — it's close to 6,300",
+        "The estimate must be wrong",
+        "She should not have estimated"
+      ],
+      correct: 1,
+      explanation: "5,188 is close to 6,300 — same thousands place, same rough size. The estimate confirms her answer is reasonable."
+    },
+    {
+      question: "A shipping company has 15 trucks. Each truck makes 24 deliveries per day. How many deliveries does the company make in one day?",
+      options: ["280", "320", "360", "420"],
+      correct: 2,
+      explanation: "15 × 24 = 360. The company makes 360 deliveries per day."
+    },
+    {
+      question: "A cook uses 115 pounds of potatoes each day for 12 days. How many pounds does she order?",
+      options: ["1,240", "1,320", "1,380", "1,480"],
+      correct: 2,
+      explanation: "115 × 12 = 1,380 pounds."
     }
   ],
 
@@ -291,6 +400,14 @@ export const chapter = {
       args: {},
       remember: "Multiply by the ones digit, then by the tens digit (add a 0 placeholder), then add the partial products.",
       workedExample: "Find 208 × 31:\n208 × 1 = 208\n208 × 3 = 624, then × 10 = 6,240\n208 + 6,240 = 6,448"
+    },
+    {
+      key: "missing-digit-multiply",
+      label: "Missing-digit multiplication puzzles (find the blank)",
+      generator: "missingDigitMultiply",
+      args: {},
+      remember: "Given the product and one factor, DIVIDE the product by the known factor to find the unknown factor. Then read off the missing digit. Estimate first to check whether your answer is reasonable.",
+      workedExample: "The product is 15,688. Find the blank: 212 × ▢4 = 15,688\n\n15,688 ÷ 212 = 74\nSo ▢ = 7 (making 74)\nCheck: 212 × 74 = 15,688 ✅"
     }
   ]
 };

@@ -1230,3 +1230,79 @@ function buildTwoDigitMultiplicationExplanation(a, b, product) {
   steps.push(`  ${formatNumber(partialOnes)} + ${formatNumber(partialTens)} = ${formatNumber(product)}`);
   return steps.join("\n");
 }
+
+/* ==========================================================
+   SKILL: Missing-digit multiplication puzzles
+   Given a multiplication equation with one digit blanked
+   out, find the missing digit. Example:
+     212 × ▢4 = 15,688  →  ▢ = 7  (because 212 × 74 = 15,688)
+   ========================================================== */
+
+export function missingDigitMultiply(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+
+  // Pick a 3-digit or 4-digit factor and a 2-digit multiplier
+  const aIsFourDigit = Math.random() < 0.3;
+  const a = aIsFourDigit ? randInt(1000, 3000) : randInt(100, 999);
+  const b = randInt(11, 89);
+
+  const product = a * b;
+
+  // Choose which digit to blank out:
+  //   "a" = blank a digit inside the 3-digit/4-digit factor
+  //   "b" = blank a digit inside the 2-digit multiplier
+  const blankMode = Math.random() < 0.6 ? "b" : "a";
+
+  let displayA, displayB, missingDigit, positionDesc, equationStr;
+
+  if (blankMode === "b") {
+    // Blank one digit in b (either tens or ones)
+    const bStr = b.toString();
+    const blankIdx = randInt(0, 1); // 0 = tens, 1 = ones
+    missingDigit = parseInt(bStr[blankIdx]);
+    positionDesc = blankIdx === 0 ? "tens digit of the multiplier" : "ones digit of the multiplier";
+
+    displayB = bStr.substring(0, blankIdx) + "▢" + bStr.substring(blankIdx + 1);
+    displayA = a.toString();
+    equationStr = `${displayA} × ${displayB} = ${formatNumber(product)}`;
+  } else {
+    // Blank one digit inside a
+    const aStr = a.toString();
+    // Don't blank the leading digit (that would make it a shorter number)
+    const blankIdx = randInt(1, aStr.length - 1);
+    missingDigit = parseInt(aStr[blankIdx]);
+    positionDesc = "digit inside the first factor";
+
+    displayA = aStr.substring(0, blankIdx) + "▢" + aStr.substring(blankIdx + 1);
+    displayB = b.toString();
+    equationStr = `${displayA} × ${displayB} = ${formatNumber(product)}`;
+  }
+
+  const explanation = `The product is ${formatNumber(product)} and one of the factors is ${blankMode === "b" ? a : b}. Divide ${formatNumber(product)} by ${blankMode === "b" ? a : b} to find the other factor, then read off the missing digit. The missing digit is ${missingDigit}.`;
+
+  if (!mc) {
+    return {
+      question: `The product is ${formatNumber(product)}. Fill in the blank:  ${equationStr}`,
+      answer: missingDigit.toString(),
+      explanation
+    };
+  }
+
+  // Distractors: nearby digits
+  const wrongs = new Set();
+  wrongs.add(String((missingDigit + 1) % 10));
+  wrongs.add(String((missingDigit + 2) % 10));
+  wrongs.add(String((missingDigit + 5) % 10));
+  wrongs.delete(missingDigit.toString());
+
+  const wrongList = [...wrongs].slice(0, 3);
+  const choices = shuffleArray([missingDigit.toString(), ...wrongList]);
+  const correctIdx = choices.indexOf(missingDigit.toString());
+
+  return {
+    question: `The product is ${formatNumber(product)}. What is the missing digit?  ${equationStr}`,
+    options: choices,
+    correct: correctIdx,
+    explanation
+  };
+}

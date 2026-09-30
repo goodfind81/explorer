@@ -2,7 +2,8 @@
    Science Chapter 11 — Water Distribution on Earth
    Earth's Systems unit. Follows Chapter 10 (Hydrosphere &
    Water Cycle). Covers WHERE Earth's water is found, salt
-   vs. fresh water, and how little is actually usable.
+   vs. fresh water, how little is actually usable, and how
+   pie charts show parts of a whole.
    ========================================================== */
 
 export const chapter = {
@@ -74,6 +75,15 @@ export const chapter = {
       </div>
 
       <div class="sg-row">
+        <span class="sg-label">How much of Earth's surface is water?</span>
+        <div class="sg-def" style="background:#E3F2FD; border-left-color: var(--primary-blue);">
+          🌍 <strong>71% of Earth's surface is covered in water.</strong><br>
+          🏞️ <strong>The other 29% is land.</strong><br><br>
+          That's why Earth looks like a big blue marble from space!
+        </div>
+      </div>
+
+      <div class="sg-row">
         <span class="sg-label">Salt water vs. Fresh water</span>
         <div class="sg-def">
           <strong>Salt water</strong> — has salt dissolved in it. Found in oceans and seas. <strong>NOT</strong> safe to drink, water plants with, or use for most things.<br><br>
@@ -104,8 +114,78 @@ export const chapter = {
       </div>
     </div>
 
+    <h3>📊 How Do We Show Water Distribution? Pie Charts</h3>
+    <p>Numbers like 97% and 3% are hard to picture. A <strong>pie chart</strong> is a graph that shows <strong>parts of a whole</strong> — like slices of a pie.</p>
+
+    <div class="study-guide">
+      <div class="sg-row">
+        <span class="sg-label">What is a pie chart?</span>
+        <div class="sg-def">
+          A <strong>pie chart</strong> is a circle split into slices. Each slice shows a fraction of the whole.<br><br>
+          • The <strong>whole circle = 100%</strong><br>
+          • Each <strong>slice = a part</strong> of the whole<br>
+          • All slices must <strong>add up to 100%</strong>
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">When to use a pie chart</span>
+        <div class="sg-def" style="background:#FFF9C4;">
+          Use a pie chart when the question is about <strong>"parts of a whole."</strong><br><br>
+          ✅ <strong>Good for:</strong> "What % of Earth's water is salt water vs. fresh?"<br>
+          ✅ <strong>Good for:</strong> "What % of Earth's surface is water vs. land?"<br>
+          ❌ <strong>Not for:</strong> showing change over time (use a line graph)<br>
+          ❌ <strong>Not for:</strong> comparing categories (use a bar graph)
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">How to make a good pie chart</span>
+        <div class="sg-def">
+          <strong>1. Title</strong> — What is the chart about? (Example: "Earth's Surface")<br>
+          <strong>2. Label each slice with a %</strong> — Write the percentage inside or next to each slice.<br>
+          <strong>3. Optional: color-code</strong> — Use colors that make sense (blue for water, brown for land).<br>
+          <strong>4. Check your work</strong> — Do all the slices add up to 100%?
+        </div>
+      </div>
+    </div>
+
+    <h3>🥧 Two Pie Charts for Earth</h3>
+
+    <div class="diagram-box medium">
+      <svg viewBox="0 0 500 260" xmlns="http://www.w3.org/2000/svg">
+        <text x="250" y="18" text-anchor="middle" font-family="Comic Sans MS" font-size="13" font-weight="bold" fill="#333">Two Ways to Look at Earth's Water</text>
+
+        <!-- LEFT PIE: Earth's Surface -->
+        <text x="130" y="42" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Earth's Surface</text>
+
+        <!-- 71% blue arc, 29% orange arc — using circles + rotation -->
+        <!-- Simplest approach: full blue circle, then orange "pac-man" wedge -->
+        <circle cx="130" cy="140" r="70" fill="#4A90E2" stroke="#2C3E50" stroke-width="1.5"/>
+        <!-- 29% orange wedge: about 104 degrees. Draw a wedge from 12 o'clock going clockwise -->
+        <path d="M130,140 L130,70 A70,70 0 0,1 191,110 Z" fill="#E67E22" stroke="#2C3E50" stroke-width="1.5"/>
+        <text x="105" y="105" font-size="11" font-weight="bold" fill="#7A3D00">Land</text>
+        <text x="105" y="120" font-size="11" font-weight="bold" fill="#7A3D00">29%</text>
+        <text x="150" y="175" font-size="12" font-weight="bold" fill="#FFFFFF">Water</text>
+        <text x="150" y="190" font-size="12" font-weight="bold" fill="#FFFFFF">71%</text>
+
+        <!-- RIGHT PIE: Salt vs Fresh -->
+        <text x="370" y="42" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">Earth's Water</text>
+
+        <!-- 97% blue, 3% green wedge (small — about 11 degrees) -->
+        <circle cx="370" cy="140" r="70" fill="#4A90E2" stroke="#2C3E50" stroke-width="1.5"/>
+        <!-- 3% wedge: about 11 degrees -->
+        <path d="M370,140 L370,70 A70,70 0 0,1 383,71 Z" fill="#2ECC71" stroke="#2C3E50" stroke-width="1.5"/>
+        <text x="345" y="150" font-size="12" font-weight="bold" fill="#FFFFFF">Saltwater</text>
+        <text x="352" y="165" font-size="12" font-weight="bold" fill="#FFFFFF">97%</text>
+        <text x="392" y="80" font-size="9" font-weight="bold" fill="#155724">Fresh</text>
+        <text x="392" y="92" font-size="9" font-weight="bold" fill="#155724">3%</text>
+      </svg>
+      <div class="diagram-caption">Left: land vs. water on Earth's surface. Right: salt vs. fresh water on Earth.</div>
+    </div>
+
     <div class="highlight">
-      <strong>Key idea:</strong> Earth looks like a water planet, but only about <strong>1% of its water is fresh water we can actually use</strong>. Everything alive depends on that tiny slice.
+      <strong>Key idea:</strong> Earth looks like a water planet, but only about <strong>1% of its water is fresh water we can actually use</strong>. Pie charts help us <em>see</em> how the pieces compare.
     </div>
 
     <div class="fun-fact">
@@ -147,21 +227,16 @@ export const chapter = {
       explanation: "The ocean is salt water. Lakes, rivers, and clouds hold fresh water."
     },
     {
-      question: "Why can't we drink ocean water?",
-      options: [
-        "It's too cold",
-        "It's too far away",
-        "It has too much salt in it",
-        "It has too many fish"
-      ],
+      question: "What percentage of Earth's SURFACE is covered in water?",
+      options: ["About 29%", "About 50%", "About 71%", "About 97%"],
       correct: 2,
-      explanation: "Ocean water is salt water. Drinking too much salt water makes people (and animals) sick."
+      explanation: "About 71% of Earth's surface is water; the other 29% is land."
     },
     {
-      question: "About how much of Earth's water is usable fresh water (lakes, rivers, groundwater)?",
-      options: ["About 1%", "About 25%", "About 50%", "About 97%"],
-      correct: 0,
-      explanation: "Only about 1% of Earth's water is fresh water we can easily use — the rest is salty or frozen."
+      question: "Which type of graph shows parts of a whole?",
+      options: ["Line graph", "Bar graph", "Pie chart", "Number line"],
+      correct: 2,
+      explanation: "A pie chart splits a circle (the whole = 100%) into slices, each showing a part."
     }
   ],
 
@@ -270,7 +345,86 @@ export const chapter = {
       explanation: "Earth looks mostly blue from space, so it's a surprise that so little of that water is fresh and usable."
     },
 
-    // --- The water cycle connection ---
+    // --- Surface coverage (71 / 29) ---
+    {
+      question: "About what percentage of Earth's SURFACE is covered in water?",
+      options: ["About 29%", "About 50%", "About 71%", "About 97%"],
+      correct: 2,
+      explanation: "About 71% of Earth's surface is water. The other 29% is land."
+    },
+    {
+      question: "About what percentage of Earth's SURFACE is land?",
+      options: ["About 3%", "About 29%", "About 50%", "About 71%"],
+      correct: 1,
+      explanation: "If water covers 71%, then land covers the rest: 100% − 71% = 29%."
+    },
+    {
+      question: "Why is Earth called the \"Blue Planet\"?",
+      options: [
+        "Because the sky is always blue",
+        "Because most of its surface is covered in water, which looks blue from space",
+        "Because the Moon is blue",
+        "Because blue is the color of the ocean floor"
+      ],
+      correct: 1,
+      explanation: "From space, Earth looks blue because about 71% of its surface is water."
+    },
+
+    // --- Pie charts ---
+    {
+      question: "What type of graph shows PARTS OF A WHOLE?",
+      options: ["Line graph", "Bar graph", "Pie chart", "Number line"],
+      correct: 2,
+      explanation: "A pie chart shows parts of a whole — the whole circle represents 100%, and each slice is a piece."
+    },
+    {
+      question: "In a pie chart, all the slices together must add up to:",
+      options: ["50%", "71%", "97%", "100%"],
+      correct: 3,
+      explanation: "A pie chart represents one whole, so the slices always add up to 100%."
+    },
+    {
+      question: "You want to show what percent of Earth's water is salt water vs. fresh water. What type of graph should you use?",
+      options: ["Line graph", "Bar graph", "Pie chart", "Number line"],
+      correct: 2,
+      explanation: "Salt water and fresh water are two parts of one whole (all of Earth's water). That's a pie chart's job."
+    },
+    {
+      question: "A pie chart about Earth's surface has a slice labeled \"Land 29%.\" What should the other slice be labeled?",
+      options: ["Water 29%", "Water 71%", "Water 97%", "Land 71%"],
+      correct: 1,
+      explanation: "The slices must add up to 100%. So the other slice is 100% − 29% = 71%, labeled \"Water 71%.\""
+    },
+    {
+      question: "You're making a pie chart of Earth's water. Salt water is 97% and fresh water is 3%. Which slice should be BIGGER?",
+      options: ["The fresh water slice", "The salt water slice", "They should be equal", "Neither should be shown"],
+      correct: 1,
+      explanation: "97% is much larger than 3%, so the salt water slice should be much bigger."
+    },
+    {
+      question: "Which is a GOOD title for a pie chart showing salt water vs. fresh water on Earth?",
+      options: [
+        "Earth's Water",
+        "My Favorite Colors",
+        "How to Save Water",
+        "Today's Weather"
+      ],
+      correct: 0,
+      explanation: "A good title tells you what the chart is about. \"Earth's Water\" fits a chart about salt vs. fresh water."
+    },
+    {
+      question: "Which pie chart part tells you what each slice represents?",
+      options: [
+        "The title",
+        "The labels (and sometimes a key/colors)",
+        "The size of the whole circle",
+        "The background color"
+      ],
+      correct: 1,
+      explanation: "The title says what the chart is about, but the labels (percentages, categories, and any key) tell you what each slice is."
+    },
+
+    // --- Water cycle connection ---
     {
       question: "Where does the fresh water in lakes and rivers originally come from?",
       options: [
@@ -281,17 +435,6 @@ export const chapter = {
       ],
       correct: 1,
       explanation: "Rain and snow refill lakes, rivers, and groundwater. That's part of the water cycle."
-    },
-    {
-      question: "Which process turns salt water into fresh water in nature?",
-      options: [
-        "Precipitation only",
-        "Condensation after evaporation (the water cycle)",
-        "The ocean turning fresh on its own",
-        "Nothing — salt water never becomes fresh"
-      ],
-      correct: 1,
-      explanation: "When ocean water evaporates, the salt stays behind. The water vapor rises, condenses into clouds, and falls as fresh rain."
     },
     {
       question: "When ocean water evaporates, what happens to the salt?",
@@ -350,17 +493,6 @@ export const chapter = {
       correct: 1,
       explanation: "About 97% of Earth's water is salt water in the oceans. Only about 3% is fresh — and only about 1% is easy to use."
     },
-    {
-      question: "What does the phrase \"the Blue Planet\" refer to?",
-      options: [
-        "Earth looks blue because it's covered in water",
-        "The sky is always blue",
-        "The Moon is blue",
-        "Blue is Krishna's favorite color"
-      ],
-      correct: 0,
-      explanation: "From space, Earth looks blue because so much of its surface is covered in water."
-    },
 
     // --- Real-world application ---
     {
@@ -386,17 +518,6 @@ export const chapter = {
       explanation: "Seawater has too much salt. Drinking it dehydrates you — it doesn't satisfy thirst the way fresh water does."
     },
     {
-      question: "Which would be a good way to use water wisely at home?",
-      options: [
-        "Water plants in the early morning or evening when less evaporates",
-        "Wash the car every day",
-        "Run the dishwasher with only 2 plates inside",
-        "Take 30-minute showers"
-      ],
-      correct: 0,
-      explanation: "Watering early or late means less evaporates in the heat — a smart way to save fresh water."
-    },
-    {
       question: "A student says, \"Earth has plenty of water, so we don't need to worry.\" What's wrong with this reasoning?",
       options: [
         "Nothing — it's true",
@@ -413,7 +534,7 @@ export const chapter = {
     {
       key: "water-distribution-basics",
       label: "Where Earth's water is found and how much is usable",
-      remember: "About 97% of Earth's water is salt water in oceans. About 3% is fresh — and most of that is frozen. Only about 1% is usable.",
+      remember: "About 71% of Earth's surface is water. About 97% of Earth's water is salt water in oceans, and only about 3% is fresh — most of that is frozen. Only about 1% is usable.",
       workedExample: "🌊 97% salt water (oceans) → 💧 3% fresh water → ❄️ 2% frozen → 🌱 1% usable"
     },
     {
@@ -421,6 +542,12 @@ export const chapter = {
       label: "Salt water vs. fresh water",
       remember: "Salt water = oceans and seas (not safe to drink). Fresh water = lakes, rivers, groundwater, ice caps, and clouds (safe for people and animals).",
       workedExample: "Ocean = salt water ❌  |  Lake = fresh water ✅"
+    },
+    {
+      key: "pie-charts",
+      label: "Reading and making pie charts for parts of a whole",
+      remember: "Pie chart = circle split into slices. Whole circle = 100%. All slices must add up to 100%. Use when the question is about parts of a whole.",
+      workedExample: "Earth's Surface: Water 71% + Land 29% = 100%"
     }
   ]
 };
