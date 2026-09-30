@@ -73,6 +73,8 @@ export class QuizEngine {
     this.userAnswers = [];
     this.heartbeat = null;
     this.ownedByThisDevice = true;   // flips false when taken over
+    this._takeoverShown = false;
+    this._finished = false;          // true once submit finishes
   }
 
   async start() {
@@ -159,7 +161,14 @@ export class QuizEngine {
 
     if (this.heartbeat) this.heartbeat.stop();
     this.heartbeat = startHeartbeat(subject, chapter, mode, (reason) => {
-      // Lost ownership
+      // Ignore heartbeat loss once the quiz is finished — the server
+      // refuses writes to completed locks, and that's expected, not a takeover.
+      if (this._finished) return;
+
+      // Only treat this as a takeover if it's genuinely not_owner.
+      // Other reasons (like "completed") mean the quiz is done — ignore.
+      if (reason && reason !== "not_owner") return;
+
       this.ownedByThisDevice = false;
       this._renderTakeoverModal("Another device has taken over this quiz.");
     });
@@ -215,7 +224,11 @@ export class QuizEngine {
   }
 
   _renderTakeoverModal(message) {
+    // Only ever show one takeover modal at a time.
+    if (this._takeoverShown) return;
+    this._takeoverShown = true;
     this._stopHeartbeat();
+
     const overlay = document.createElement("div");
     overlay.className = "quiz-takeover-overlay";
     overlay.innerHTML = `
@@ -231,6 +244,7 @@ export class QuizEngine {
     document.body.appendChild(overlay);
     overlay.querySelector("#takeoverOk").addEventListener("click", () => {
       overlay.remove();
+      this._takeoverShown = false;
       if (window.App && window.App.goHome) window.App.goHome();
     });
   }
@@ -342,6 +356,8 @@ export class QuizEngine {
      ========================================================== */
 
   async _finishQuiz() {
+    this._finished = true;
+
     // Guard: no submission with blanks
     const firstUnanswered = this.userAnswers.findIndex(a => a == null);
     if (firstUnanswered !== -1) {
