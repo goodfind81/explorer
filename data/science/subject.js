@@ -13,5 +13,6 @@ import { chapter as ch8 } from "./chapter-08-bouncy-ball-lab.js";
 import { chapter as ch9 } from "./chapter-09-metric-system.js";
 import { chapter as ch10 } from "./chapter-10-hydrosphere-water-cycle.js";
 import { chapter as ch11 } from "./chapter-11-water-distribution.js";
+import { chapter as ch12 } from "./chapter-12-ocean-salinity.js";
 
-export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11];
+export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12];
