@@ -35,7 +35,8 @@ function renderTop() {
   }
   const pr = S.data?.profile;
   const tr = pr && ASCEND_SECTIONS[pr.section];
-  $("#who").innerHTML = pr ? `<span class="chip acc">${esc(tr.grade)} · ${esc(tr.test)}</span><span>${esc(pr.display_name || pr.username)}</span>` : "";
+  $("#who").innerHTML = pr ? `<span class="chip acc">${esc(tr.grade)}</span><span>${esc(pr.display_name || pr.username)}</span>
+    ${pr.role === "admin" ? `<a class="note" href="${PORTAL_URL}">All sections</a>` : ""}<button class="link note" data-signout>Sign out</button>` : "";
   const tabs = [["today", "Today"], ["progress", "Progress"], ["resources", "Official practice"], ["account", "Account"]];
   if (pr?.role === "admin") tabs.push(["admin", "Admin ↗"]);
   const cur = S.view === "practice" || S.view === "done" ? "today" : S.view;

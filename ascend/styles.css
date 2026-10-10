@@ -65,8 +65,9 @@ p{margin:0}
 .subj{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .subj-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .score{font-family:var(--f-mono);font-size:14px;color:var(--muted)}
-.dots{display:flex;flex-wrap:wrap;gap:6px}
-.dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted);opacity:.6}
+/* One row of up to 15: dots shrink to fit instead of wrapping */
+.dots{display:flex;flex-wrap:nowrap;gap:5px}
+.dot{flex:0 1 16px;min-width:8px;aspect-ratio:1;border-radius:50%;border:1.5px solid var(--muted);opacity:.6}
 .dot.ok{background:var(--good);border-color:var(--good);opacity:1}
 .dot.no{background:var(--bad);border-color:var(--bad);opacity:1}
 .focus{display:flex;flex-wrap:wrap;gap:6px}
