@@ -52,7 +52,7 @@ const kidName = (p) => `${p.display_name || p.username} · ${SECTIONS[p.section]
 function kidBoxes(name, checked, parentId = "") {
   const list = students();
   if (!list.length) return '<p class="note">No students yet.</p>';
-  return `<div class="kids">${list.map((k) => `<label class="mini"><input type="checkbox" name="${name}" value="${k.id}" ${parentId ? `data-link="${parentId}"` : ""} ${checked.includes(k.id) ? "checked" : ""}> ${esc(kidName(k))}</label>`).join("")}</div>`;
+  return `<div class="kids">${list.map((k) => `<label class="check"><input type="checkbox" name="${name}" value="${k.id}" ${parentId ? `data-link="${parentId}"` : ""} ${checked.includes(k.id) ? "checked" : ""}> ${esc(kidName(k))}</label>`).join("")}</div>`;
 }
 
 /* ───────── view ───────── */
@@ -68,7 +68,7 @@ function render() {
         <button class="btn small" data-do-edit="${p.id}">Save</button><button class="link" data-cancel>Cancel</button>`;
     } else if (S.resetFor === p.id) {
       actions = `<input id="rp" value="${esc(newPassword())}" minlength="6" aria-label="New password" class="small-input">
-        <label class="mini"><input type="checkbox" id="rm" checked> must change</label>
+        <label class="check"><input type="checkbox" id="rm" checked> must change</label>
         <button class="btn small" data-do-reset="${p.id}">Set</button><button class="link" data-cancel>Cancel</button>`;
     } else if (S.deleteFor === p.id) {
       actions = `<span class="err">Delete ${esc(p.username)}?</span>
@@ -79,36 +79,37 @@ function render() {
         <button class="link" data-delete="${p.id}">Delete</button>`}`;
     }
     return `<tr>
-      <td><b>${esc(p.display_name || "—")}</b><div class="mini muted">${esc(p.username)}</div></td>
+      <td><b>${esc(p.display_name || p.username)}</b><div class="mini muted">${esc(p.username)}</div></td>
       <td>${p.role === "admin" ? "All" : p.role === "parent" ? kidBoxes(`k_${p.id}`, kidsOf(p.id), p.id) : `<select data-section="${p.id}" aria-label="Section">${opts(SECTIONS, p.section)}</select>`}</td>
       <td>${esc(p.role)}</td>
       <td>${p.active ? '<span class="pill ok">active</span>' : '<span class="pill off">paused</span>'}
-          ${p.must_change_password ? '<span class="pill warn">must change password</span>' : ""}</td>
+          ${p.must_change_password ? '<span class="pill warn">must reset password</span>' : ""}</td>
       <td><div class="row">${actions}</div></td></tr>`;
   }).join("");
 
   $("#app").innerHTML = `
     <div class="intro"><p class="eyebrow">Admin</p><h1>Accounts</h1></div>
-    <div class="split">
-      <form id="newForm" class="panel login">
-        <h2>Add an account</h2>
-        <div class="field"><label for="nName">Name</label><input id="nName" maxlength="60" placeholder="Krishna"></div>
-        <div class="field"><label for="nUser">Username</label><input id="nUser" required pattern="[a-z0-9_.\\-]{3,30}" autocapitalize="none" spellcheck="false" placeholder="krishna"></div>
+    <form id="newForm" class="panel">
+      <h2>Add an account</h2>
+      <div class="form-grid">
+        <div class="field"><label for="nName">Name</label><input id="nName" maxlength="60" placeholder="e.g. Krishna"></div>
+        <div class="field"><label for="nUser">Username</label><input id="nUser" required pattern="[a-z0-9_.\\-]{3,30}" autocapitalize="none" spellcheck="false" placeholder="e.g. krishna"></div>
         <div class="field"><label for="nRole">Role</label><select id="nRole">${opts({ student: "Student", parent: "Parent" }, S.newRole)}</select></div>
-        ${S.newRole === "parent"
-          ? `<div class="field"><span class="label">Kids</span>${kidBoxes("nKids", [])}</div>`
-          : `<div class="field"><label for="nSection">Section</label><select id="nSection">${opts(SECTIONS, "g4")}</select></div>`}
+        ${S.newRole === "parent" ? "" : `<div class="field"><label for="nSection">Section</label><select id="nSection">${opts(SECTIONS, "g4")}</select></div>`}
         <div class="field"><label for="nPass">Password</label><input id="nPass" required minlength="6" value="${esc(newPassword())}"></div>
-        <label class="note"><input type="checkbox" id="nMust" checked> Must change password at first sign-in</label>
-        <p class="err" id="nErr"></p>
-        <button class="btn" type="submit">Create account</button>
-        ${c ? `<div class="done"><b>${esc(c.username)}</b> is ready. Password: <b>${esc(c.password)}</b></div>` : ""}
-      </form>
-      <div class="panel table-panel">
-        ${!S.list ? '<p class="muted">Loading…</p>' : S.list.length ? `<div class="tblwrap"><table>
-          <thead><tr><th>Name</th><th>Section / kids</th><th>Role</th><th>Status</th><th></th></tr></thead>
-          <tbody>${rows}</tbody></table></div>` : '<p class="muted">No accounts yet.</p>'}
       </div>
+      ${S.newRole === "parent" ? `<div class="field"><span class="label">Kids</span>${kidBoxes("nKids", [])}</div>` : ""}
+      <div class="form-foot">
+        <label class="check"><input type="checkbox" id="nMust" checked> Must change password at first sign-in</label>
+        <button class="btn" type="submit">Create account</button>
+      </div>
+      <p class="err" id="nErr"></p>
+      ${c ? `<div class="done"><b>${esc(c.username)}</b> is ready. Password: <b>${esc(c.password)}</b></div>` : ""}
+    </form>
+    <div class="panel table-panel">
+      ${!S.list ? '<p class="muted">Loading…</p>' : S.list.length ? `<div class="tblwrap"><table>
+        <thead><tr><th>Name</th><th>Section / kids</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>` : '<p class="muted">No accounts yet.</p>'}
     </div>`;
 }
 
