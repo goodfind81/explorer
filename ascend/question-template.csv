@@ -1,0 +1,4 @@
+subject,level,domain,skill,passage,question,choice_a,choice_b,choice_c,choice_d,answer,explanation
+rw,2,Craft and Structure,Words in Context,"The guide’s directions were so ______ that the hikers never once took a wrong turn.",Which choice completes the text with the most logical and precise word or phrase?,precise,vague,lengthy,hurried,A,"Never taking a wrong turn means the directions were exact, which is precise."
+math,1,Algebra,Linear equations in one variable,,"If 4x − 6 = 18, what is the value of x?",3,6,8,12,B,"Add 6 to both sides: 4x = 24, so x = 6."
+math,3,Advanced Math,Nonlinear equations,,"What is the sum of the solutions to x^{2} − 9x + 14 = 0?",,,,,9,"Factor: (x − 2)(x − 7) = 0, so x = 2 or 7. The sum is 9."

@@ -15,8 +15,8 @@
 
 import { Storage } from "./storage.js";
 import {
-  getSession,
-  renderLoginScreen,
+  startSession,
+  logout,
   isParent
 } from "./auth.js";
 import { renderHomePage } from "./home-page.js";
@@ -75,17 +75,8 @@ const els = {
 async function boot() {
   await Storage.init();
 
-  state.session = getSession();
-
-  if (!state.session) {
-    // Show login screen, hide everything else
-    showView("login");
-    renderLoginScreen(els.loginView, async (session) => {
-      state.session = session;
-      await boot();
-    });
-    return;
-  }
+  // Sign-in happens on the site portal; this redirects there if needed
+  state.session = await startSession();
 
   // Signed in — load subjects and show home
   await loadAllSubjects();
@@ -138,7 +129,7 @@ function applyRoleToUI() {
   // Role indicator in the footer (both roles see it, but content differs)
   if (els.roleIndicator) {
     const emoji = parent ? "👤" : "🎒";
-    const label = parent ? "Parent mode" : "Student mode";
+    const label = parent ? `Parent mode · ${state.session.kidName}` : "Student mode";
     els.roleIndicator.innerHTML = `
       <span class="role-label">${emoji} ${label}</span>
       <button class="logout-btn" id="logoutBtn">Sign out</button>
@@ -146,10 +137,8 @@ function applyRoleToUI() {
     const btn = els.roleIndicator.querySelector("#logoutBtn");
     if (btn) {
       btn.addEventListener("click", () => {
-        if (confirm("Sign out? You'll need to enter the code again next time.")) {
-          localStorage.removeItem("explorer_familyCode");
-          localStorage.removeItem("explorer_role");
-          window.location.reload();
+        if (confirm("Sign out? You'll need your username and password next time.")) {
+          logout();
         }
       });
     }

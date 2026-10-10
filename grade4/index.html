@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4th Grade Explorer</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<!-- ==========================================================
+     LOGIN VIEW — unused: sign-in happens on the portal (/)
+     ========================================================== -->
+<div id="loginView" class="view" style="display:none;"></div>
+
+<!-- ==========================================================
+     HOME VIEW
+     ========================================================== -->
+<div id="homeView" class="view" style="display:none;">
+
+  <header class="home-header">
+    <h1>🎒 4th Grade Explorer</h1>
+    <p>What are we learning today?</p>
+  </header>
+
+  <main id="homeContent">
+    <!-- Subject cards injected by home-page.js -->
+  </main>
+
+  <footer class="app-footer">
+    <div id="roleIndicator" class="role-indicator-wrap"></div>
+    <button class="nav-btn parent parent-only" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+    <a class="nav-btn parent-only" href="../">🏠 All sections</a>
+  </footer>
+
+</div>
+
+<!-- ==========================================================
+     SUBJECT VIEW
+     ========================================================== -->
+<div id="subjectView" class="view" style="display:none;">
+
+  <header class="subject-header">
+    <button class="back-home-btn" onclick="App.goHome()">← Home</button>
+    <h1 id="subjectTitle">Subject</h1>
+  </header>
+
+  <nav class="subject-toolbar">
+    <div class="chapter-select-wrap">
+      <label for="chapterSelect">📘 Chapter:</label>
+      <select id="chapterSelect"></select>
+    </div>
+    <button class="homework-btn" id="homeworkBtn" onclick="App.openHomework()">
+      📝 Today's Homework
+    </button>
+  </nav>
+
+  <nav class="section-progress" id="sectionProgress">
+    <!-- Injected by chapter-view.js -->
+  </nav>
+
+  <main id="sectionContent">
+    <!-- Injected by chapter-view.js -->
+  </main>
+
+  <footer class="app-footer">
+    <div id="roleIndicator" class="role-indicator-wrap"></div>
+    <button class="nav-btn parent parent-only" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+  </footer>
+
+</div>
+
+<!-- ==========================================================
+     HOMEWORK VIEW
+     ========================================================== -->
+<div id="homeworkView" class="view" style="display:none;">
+
+  <header class="subject-header">
+    <button class="back-home-btn" onclick="App.backFromHomework()">← Back</button>
+    <h1 id="homeworkTitle">Today's Homework</h1>
+  </header>
+
+  <main id="homeworkContent">
+    <!-- Injected by homework-view.js -->
+  </main>
+
+  <footer class="app-footer">
+    <div id="roleIndicator" class="role-indicator-wrap"></div>
+    <button class="nav-btn parent parent-only" onclick="App.showParentDashboard()">📊 Parent Dashboard</button>
+  </footer>
+
+</div>
+
+<!-- ==========================================================
+     PARENT VIEW
+     ========================================================== -->
+<div id="parentView" class="view" style="display:none;">
+
+  <header class="subject-header">
+    <button class="back-home-btn" onclick="App.goHome()">← Home</button>
+    <h1>📊 Parent Dashboard</h1>
+  </header>
+
+  <main id="parentContent">
+    <!-- Injected by parent-dashboard.js -->
+  </main>
+
+  <footer class="app-footer">
+    <button class="nav-btn" onclick="App.goHome()">🏠 Back to Home</button>
+  </footer>
+
+</div>
+
+<script type="module" src="assets/app.js"></script>
+
+</body>
+</html>

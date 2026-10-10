@@ -1,23 +1,20 @@
 /* ==========================================================
    supabase-config.js
-   Supabase connection + family codes.
+   Supabase REST helpers + family id for the 4th Grade data.
 
    The publishable key is designed to be public — RLS on the
    database controls what it can actually access.
    ========================================================== */
 
-export const SUPABASE_URL = "https://lairmjaqsqyqbrcatubm.supabase.co";
-export const SUPABASE_KEY = "sb_publishable_5Za7731n8QQu7xykFmiNYg_MraLKf7b";
+/* URL and key are shared by every section of the site. */
+import { SUPABASE_URL, SUPABASE_KEY } from "../../shared/config.js";
+export { SUPABASE_URL, SUPABASE_KEY };
 
-/* Family codes. Both map to the same underlying data.
-   The code entered determines which view is shown. */
-export const FAMILY_CODE_KID = "srk";
-export const FAMILY_CODE_PARENT = "ar";
-
-/* The internal family id used in the database.
-   All data is keyed by this so a rename of the codes
-   doesn't lose data. */
-export const FAMILY_ID = "srk-family";
+/* Which kid's data this session reads and writes. Every row is keyed by it.
+   Set once at boot by auth.js#startSession() from the signed-in profile
+   (a live binding: modules that import FAMILY_ID see the new value). */
+export let FAMILY_ID = null;
+export function setFamilyId(id) { FAMILY_ID = id; }
 
 /* localStorage keys */
 export const LS_KEYS = {
