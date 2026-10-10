@@ -28,7 +28,7 @@ const items = (s) => set(s).items || [];
 function renderTop() {
   if (S.watch) {
     const tr = ASCEND_SECTIONS[S.watch.section];
-    $("#who").innerHTML = `<span class="chip acc">${esc(tr.grade)}</span><span>Viewing ${esc(nameOf(S.watch))}</span><a class="note" href="${PORTAL_URL}">All sections</a>`;
+    $("#who").innerHTML = `<span class="chip acc">${esc(tr.grade)}</span><span>Viewing ${esc(nameOf(S.watch))}</span><a class="note" href="${PORTAL_URL}">All sections</a><button class="link note" data-signout>Sign out</button>`;
     const tabs = [["progress", "Progress"], ["resources", "Official practice"]];
     $("#tabs").innerHTML = tabs.map(([k, l]) => `<button class="tab" data-tab="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${l}</button>`).join("");
     return;
