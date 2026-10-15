@@ -98,9 +98,9 @@ export const chapter = {
           🌊 <strong>About 97% is salt water</strong> (in the oceans)<br>
           💧 <strong>Only about 3% is fresh water</strong><br><br>
           And of that 3% of fresh water:<br>
-          ❄️ <strong>About 2% is frozen</strong> in ice caps and glaciers<br>
-          🌱 <strong>Only about 1% is usable</strong> — lakes, rivers, groundwater, and the atmosphere<br><br>
-          <strong>That's it. Only about 1% of Earth's water is easy for us to use!</strong>
+          ❄️ <strong>Most of it is frozen</strong> in ice caps and glaciers<br>
+          🕳️ Much of the rest is <strong>groundwater</strong>, deep underground<br><br>
+          <strong>That's it. Only about 0.3% of Earth's water is usable by humans!</strong>
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export const chapter = {
     </div>
 
     <div class="highlight">
-      <strong>Key idea:</strong> Earth looks like a water planet, but only about <strong>1% of its water is fresh water we can actually use</strong>. Pie charts help us <em>see</em> how the pieces compare.
+      <strong>Key idea:</strong> Earth looks like a water planet, but only about <strong>0.3% of its water is fresh water we can actually use</strong>. Pie charts help us <em>see</em> how the pieces compare.
     </div>
 
     <div class="fun-fact">
@@ -203,7 +203,7 @@ export const chapter = {
     </ul>
 
     <div class="highlight">
-      <strong>Think about it:</strong> When you drink a glass of water, you're using a tiny piece of that 1%. Every living thing on Earth is sharing it. That's why we don't waste it!
+      <strong>Think about it:</strong> When you drink a glass of water, you're using a tiny piece of that 0.3%. Every living thing on Earth is sharing it. That's why we don't waste it!
     </div>
   `,
 
@@ -325,19 +325,19 @@ export const chapter = {
       question: "Of Earth's fresh water, most is:",
       options: ["In lakes", "Frozen in ice caps and glaciers", "In rivers", "In clouds"],
       correct: 1,
-      explanation: "About 2 of the 3 percent of Earth's fresh water is frozen in ice caps and glaciers."
+      explanation: "Most of Earth's fresh water (about 68.5% of it) is frozen in ice caps and glaciers."
     },
     {
-      question: "About how much of Earth's water is USABLE fresh water (lakes, rivers, groundwater)?",
-      options: ["About 1%", "About 10%", "About 25%", "About 50%"],
+      question: "About how much of Earth's water is usable by humans?",
+      options: ["About 0.3%", "About 10%", "About 25%", "About 50%"],
       correct: 0,
-      explanation: "Only about 1% of Earth's water is easy to use — lakes, rivers, groundwater, and the atmosphere."
+      explanation: "Only about 0.3% of the water on Earth is usable by humans. Most fresh water is frozen or hard to reach."
     },
     {
-      question: "Why is it surprising that only about 1% of Earth's water is usable?",
+      question: "Why is it surprising that only about 0.3% of Earth's water is usable?",
       options: [
         "Because Earth looks like a water planet — it seems like there should be more",
-        "Because 1% is a very large number",
+        "Because 0.3% is a very large number",
         "Because we don't need much water",
         "Because water is invisible"
       ],
@@ -453,7 +453,7 @@ export const chapter = {
       question: "Why is it important that we don't waste fresh water?",
       options: [
         "Because water is expensive",
-        "Because only about 1% of Earth's water is usable, and we share it with all living things",
+        "Because only about 0.3% of Earth's water is usable, and we share it with all living things",
         "Because it's hard to carry",
         "Because it's not recyclable"
       ],
@@ -491,7 +491,7 @@ export const chapter = {
         "Earth has very little water"
       ],
       correct: 1,
-      explanation: "About 97% of Earth's water is salt water in the oceans. Only about 3% is fresh — and only about 1% is easy to use."
+      explanation: "About 97% of Earth's water is salt water in the oceans. Only about 3% is fresh, and only about 0.3% is usable by humans."
     },
 
     // --- Real-world application ---
@@ -521,12 +521,12 @@ export const chapter = {
       question: "A student says, \"Earth has plenty of water, so we don't need to worry.\" What's wrong with this reasoning?",
       options: [
         "Nothing — it's true",
-        "Most of Earth's water is salty or frozen; only about 1% is easy to use",
+        "Most of Earth's water is salty or frozen; only about 0.3% is usable",
         "Earth actually has no water",
         "Water isn't important"
       ],
       correct: 1,
-      explanation: "Earth has lots of water, but almost all of it is salt water or frozen. Only about 1% is usable fresh water."
+      explanation: "Earth has lots of water, but almost all of it is salt water or frozen. Only about 0.3% is usable by humans."
     }
   ],
 
@@ -534,8 +534,8 @@ export const chapter = {
     {
       key: "water-distribution-basics",
       label: "Where Earth's water is found and how much is usable",
-      remember: "About 71% of Earth's surface is water. About 97% of Earth's water is salt water in oceans, and only about 3% is fresh — most of that is frozen. Only about 1% is usable.",
-      workedExample: "🌊 97% salt water (oceans) → 💧 3% fresh water → ❄️ 2% frozen → 🌱 1% usable"
+      remember: "About 71% of Earth's surface is water. About 97% of Earth's water is salt water in oceans, and only about 3% is fresh — most of that is frozen. Only about 0.3% is usable by humans.",
+      workedExample: "🌊 97% salt water (oceans) → 💧 3% fresh water (mostly frozen) → 🌱 only 0.3% usable"
     },
     {
       key: "salt-vs-fresh",
