@@ -13,5 +13,6 @@ import { chapter as ch8 } from "./chapter-08-multiply-powers-of-10.js";
 import { chapter as ch9a } from "./chapter-09-metric-system.js";
 import { chapter as ch9 } from "./chapter-09-multiply-whole-numbers.js";
 import { chapter as ch10 } from "./chapter-10-aasa-extra-credit.js";
+import { chapter as ch11 } from "./chapter-11-multiply-decimals.js";
 
-export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9a, ch9, ch10];
+export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9a, ch9, ch10, ch11];

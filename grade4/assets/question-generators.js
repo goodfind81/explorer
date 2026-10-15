@@ -1306,3 +1306,137 @@ export function missingDigitMultiply(opts = {}) {
     explanation
   };
 }
+/* ==========================================================
+   SKILLS: Multiply decimals (enVision Topic 4)
+   Decimals are kept as scaled integers (value = n / 10^d)
+   so answers never pick up floating-point noise.
+   ========================================================== */
+
+/** Format n / 10^d without trailing zeros, with commas in the whole part. */
+function formatScaled(n, d) {
+  const neg = n < 0;
+  let s = Math.abs(n).toString().padStart(d + 1, "0");
+  let whole = d ? s.slice(0, -d) : s;
+  let frac = d ? s.slice(-d) : "";
+  frac = frac.replace(/0+$/, "");
+  whole = formatNumber(Number(whole));
+  return (neg ? "-" : "") + whole + (frac ? "." + frac : "");
+}
+
+/** n / 10^d times 10^k, as [n', d'] in lowest terms. */
+function shiftScaled(n, d, k) {
+  let nn = n, dd = d - k;
+  if (dd < 0) { nn = n * Math.pow(10, -dd); dd = 0; }
+  while (dd > 0 && nn % 10 === 0) { nn /= 10; dd--; }
+  return [nn, dd];
+}
+
+/** Random decimal with 1–3 decimal places (as [n, d]). */
+function randomDecimal(maxWhole, minPlaces = 1, maxPlaces = 3) {
+  const d = randInt(minPlaces, maxPlaces);
+  const scale = Math.pow(10, d);
+  let n;
+  do { n = randInt(1, maxWhole * scale - 1); } while (n % 10 === 0);
+  return [n, d];
+}
+
+function powerLabel(k) {
+  return Math.random() < 0.5 ? formatNumber(Math.pow(10, k)) : `10^${k}`;
+}
+
+/**
+ * Multiply a decimal by 10, 100, 1,000 or 10,000 (Lesson 4-1).
+ * Sometimes asks for the missing exponent instead.
+ */
+export function multiplyDecimalPowerOf10(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const [n, d] = randomDecimal(pick([1, 10, 100]), 1, 3);
+  const k = randInt(1, 4);
+  const num = formatScaled(n, d);
+  const product = formatScaled(...shiftScaled(n, d, k));
+
+  if (!mc && Math.random() < 0.25) {
+    return {
+      question: `Find the missing exponent: ${num} × 10^▢ = ${product}`,
+      answer: String(k),
+      explanation: `The decimal point moved ${k} place${k > 1 ? "s" : ""} to the right, so the exponent is ${k}. ${num} × 10^${k} = ${product}.`
+    };
+  }
+
+  const label = powerLabel(k);
+  const explanation = `${label} has ${k} zero${k > 1 ? "s" : ""} (10^${k}), so move the decimal point ${k} place${k > 1 ? "s" : ""} to the right: ${num} × ${label} = ${product}.`;
+  const question = `What is ${num} × ${label}?`;
+  if (!mc) return { question, answer: product, explanation };
+
+  const wrong = [
+    formatScaled(...shiftScaled(n, d, k - 1)),
+    formatScaled(...shiftScaled(n, d, k + 1)),
+    formatScaled(...shiftScaled(n, d, -k))
+  ];
+  const choices = shuffleArray([...new Set([product, ...wrong])]);
+  return { question, options: choices, correct: choices.indexOf(product), explanation };
+}
+
+/**
+ * Estimate a whole number × a decimal by rounding (Lesson 4-2).
+ * Whole numbers round to the greatest place; decimals ≥ 1 round to the
+ * nearest whole number, decimals < 1 to the nearest tenth.
+ */
+export function estimateDecimalProduct(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const w = Math.random() < 0.7 ? randInt(11, 99) : randInt(3, 9);
+  const small = Math.random() < 0.3;
+  // Small decimals stay between 0.15 and 0.94 so they never round to 0.
+  let [n, d] = small ? [randInt(15, 94), 2] : randomDecimal(pick([5, 10]), 1, 2);
+  if (!small && n < Math.pow(10, d)) n += Math.pow(10, d);   // keep these at 1 or more
+  const dec = formatScaled(n, d);
+
+  const wr = w >= 10 ? Math.round(w / 10) * 10 : w;
+  let rn, rd, rule;
+  if (n >= Math.pow(10, d)) {
+    rn = Math.round(n / Math.pow(10, d)); rd = 0; rule = "the nearest whole number";
+  } else {
+    rn = Math.round(n / Math.pow(10, d - 1)); rd = 1; rule = "the nearest tenth";
+  }
+  const estimate = formatScaled(wr * rn, rd);
+  const rounded = formatScaled(rn, rd);
+  const wholeStep = w >= 10 ? `${w} → ${wr} (nearest ten)` : `${w} stays ${w}`;
+  const explanation = `${wholeStep}, ${dec} → ${rounded} (${rule}). ${wr} × ${rounded} = ${estimate}.`;
+  const question = `Estimate ${w} × ${dec}. Round ${w >= 10 ? `${w} to the nearest ten and ` : ""}${dec} to ${rule}.`;
+  if (!mc) return { question, answer: estimate, explanation };
+
+  const exact = formatScaled(w * n, d);
+  const wrong = [formatScaled(wr * rn * 10, rd), formatScaled(wr * rn, rd + 1), exact];
+  const choices = shuffleArray([...new Set([estimate, ...wrong])]);
+  return { question, options: choices, correct: choices.indexOf(estimate), explanation };
+}
+
+/** "about 2 × 9 = 18" — rounds to a whole number, or to tenths when the decimal is below 1. */
+function estimateCheck(n, d, w) {
+  const scale = Math.pow(10, d);
+  if (n >= scale) { const r = Math.round(n / scale); return `about ${r} × ${w} = ${r * w}`; }
+  const t = Math.max(1, Math.round(n / (scale / 10)));
+  return `about ${formatScaled(t, 1)} × ${w} = ${formatScaled(t * w, 1)}`;
+}
+
+/**
+ * Multiply a decimal (tenths or hundredths) by a 1-digit whole number (Lesson 4-3).
+ */
+export function multiplyDecimalByWhole(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const [n, d] = randomDecimal(pick([1, 1, 5, 10]), 1, 2);
+  const w = randInt(2, 9);
+  const dec = formatScaled(n, d);
+  const product = formatScaled(w * n, d);
+  const placeName = d === 1 ? "tenths" : "hundredths";
+  const explanation =
+    `Multiply as whole numbers: ${n} × ${w} = ${formatNumber(n * w)}. ` +
+    `${dec} has ${d} decimal place${d > 1 ? "s" : ""} (${placeName}), so the product has ${d} too: ${product}. ` +
+    `Check with an estimate: ${estimateCheck(n, d, w)}.`;
+  const question = Math.random() < 0.5 ? `Find ${dec} × ${w}.` : `Find ${w} × ${dec}.`;
+  if (!mc) return { question, answer: product, explanation };
+
+  const wrong = [formatScaled(w * n, d + 1), formatScaled(w * n, Math.max(0, d - 1)), formatScaled(w * n + Math.pow(10, d - 1), d)];
+  const choices = shuffleArray([...new Set([product, ...wrong])]);
+  return { question, options: choices, correct: choices.indexOf(product), explanation };
+}
