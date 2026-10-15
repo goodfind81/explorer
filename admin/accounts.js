@@ -1,7 +1,8 @@
 /* ==========================================================
    admin/accounts.js — kidostutor.com/admin/
    Accounts for every section: create, change section,
-   reset password, pause/resume, delete. Admins only.
+   reset password, pause/resume, delete, and login history.
+   Admins only.
 
    Reads and simple updates go straight to the profiles table
    (RLS lets admins do that). Creating, resetting passwords and
@@ -12,7 +13,8 @@
 import { sb, getProfile, signOut, friendlyError, PORTAL_URL } from "../shared/session.js";
 
 const SECTIONS = { g4: "4th Grade", psat: "PSAT", sat: "SAT" };
-const S = { me: null, list: null, links: [], created: null, resetFor: null, deleteFor: null, editFor: null, newRole: "student" };
+const S = { me: null, list: null, links: [], created: null, resetFor: null, deleteFor: null, editFor: null, newRole: "student",
+  seen: {}, logins: null, lf: { who: "", from: daysAgo(6), to: daysAgo(0) } };
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -21,6 +23,17 @@ const opts = (map, cur) => Object.entries(map).map(([k, v]) => `<option value="$
 function toast(msg) {
   const t = $("#toast"); t.textContent = msg; t.hidden = false;
   clearTimeout(toast.h); toast.h = setTimeout(() => (t.hidden = true), 3500);
+}
+function daysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+const when = (t) => new Date(t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function ago(t) {
+  const m = Math.round((Date.now() - new Date(t)) / 60000);
+  if (m < 60) return m <= 1 ? "just now" : `${m} min ago`;
+  const h = Math.round(m / 60); if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24); return d === 1 ? "yesterday" : `${d} days ago`;
 }
 function newPassword() {
   const w = ["maple", "river", "comet", "tiger", "piano", "cedar", "orbit", "lemon", "falcon", "harbor"];
@@ -43,6 +56,22 @@ async function load() {
   const { data: links, error: e2 } = await sb.from("parent_links").select("parent_id,student_id");
   if (e2) throw e2;
   S.list = data; S.links = links;
+  // Login history needs migration 0006; the rest of the page works without it.
+  const { data: seen, error: e3 } = await sb.rpc("login_summary");
+  S.seen = e3 ? {} : Object.fromEntries(seen.map((r) => [r.user_id, r]));
+}
+
+/* Login history for the chosen person and dates (inclusive, local time). */
+async function loadLogins() {
+  const { who, from, to } = S.lf;
+  const end = new Date(`${to}T00:00`); end.setDate(end.getDate() + 1);
+  let q = sb.from("login_events").select("user_id,kind,section,at")
+    .gte("at", new Date(`${from}T00:00`).toISOString()).lt("at", end.toISOString())
+    .order("at", { ascending: false }).limit(500);
+  if (who) q = q.eq("user_id", who);
+  const { data, error } = await q;
+  if (error) throw error;
+  S.logins = data;
 }
 const students = () => (S.list || []).filter((p) => p.role === "student");
 const kidsOf = (parentId) => S.links.filter((l) => l.parent_id === parentId).map((l) => l.student_id);
@@ -84,6 +113,7 @@ function render() {
       <td>${esc(p.role)}</td>
       <td>${p.active ? '<span class="pill ok">active</span>' : '<span class="pill off">paused</span>'}
           ${p.must_change_password ? '<span class="pill warn">must reset password</span>' : ""}</td>
+      <td>${seenCell(p)}</td>
       <td><div class="row">${actions}</div></td></tr>`;
   }).join("");
 
@@ -108,9 +138,53 @@ function render() {
     </form>
     <div class="panel table-panel">
       ${!S.list ? '<p class="muted">Loading…</p>' : S.list.length ? `<div class="tblwrap"><table>
-        <thead><tr><th>Name</th><th>Section / kids</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Section / kids</th><th>Role</th><th>Status</th><th>Last seen</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>` : '<p class="muted">No accounts yet.</p>'}
-    </div>`;
+    </div>
+    <div id="loginsWrap"></div>`;
+  renderLogins();
+}
+
+/* Drawn on its own so changing the filter doesn't reset the add-account form. */
+function renderLogins() {
+  const w = $("#loginsWrap"); if (w) w.innerHTML = S.list ? loginPanel() : "";
+}
+
+function seenCell(p) {
+  const r = S.seen[p.id];
+  if (!r) return '<span class="muted mini">Never</span>';
+  const n = Number(r.sign_ins) + Number(r.visits);
+  return `<span title="${esc(when(r.last_at))}">${esc(ago(r.last_at))}</span>
+    <div class="mini muted"><button class="link mini" data-history="${p.id}">${n} login${n === 1 ? "" : "s"}</button></div>`;
+}
+
+function loginPanel() {
+  const { who, from, to } = S.lf;
+  const byId = Object.fromEntries(S.list.map((p) => [p.id, p]));
+  const people = Object.fromEntries([["", "Everyone"], ...S.list.map((p) => [p.id, `${p.display_name || p.username} (${p.role})`])]);
+  const rows = (S.logins || []).map((r) => {
+    const p = byId[r.user_id];
+    return `<tr><td>${esc(when(r.at))}</td><td><b>${esc(p ? p.display_name || p.username : "Deleted account")}</b>${p ? `<div class="mini muted">${esc(p.username)}</div>` : ""}</td>
+      <td>${r.kind === "sign_in" ? "Signed in" : "Came back"}</td><td>${esc(SECTIONS[r.section] || "Portal")}</td></tr>`;
+  }).join("");
+  return `<section class="panel table-panel" id="logins">
+    <h2>Login history</h2>
+    <div class="form-grid">
+      <div class="field"><label for="lfWho">Who</label><select id="lfWho">${opts(people, who)}</select></div>
+      <div class="field"><label for="lfFrom">From</label><input id="lfFrom" type="date" value="${from}" max="${to}"></div>
+      <div class="field"><label for="lfTo">To</label><input id="lfTo" type="date" value="${to}" min="${from}" max="${daysAgo(0)}"></div>
+    </div>
+    ${!S.logins ? '<p class="muted">Loading…</p>' : S.logins.length ? `<div class="tblwrap"><table>
+      <thead><tr><th>When</th><th>Who</th><th>How</th><th>Section</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${S.logins.length === 500 ? '<p class="note">Showing the latest 500. Narrow the dates to see older ones.</p>' : ""}`
+      : '<p class="muted">No logins in these dates.</p>'}
+    <p class="note">“Signed in” means they typed their password. “Came back” means they opened the site while still signed in (counted once per browser tab).</p>
+  </section>`;
+}
+
+async function refreshLogins() {
+  try { await loadLogins(); } catch (er) { S.logins = []; toast(friendlyError(er)); }
+  renderLogins();
 }
 
 /* ───────── events ───────── */
@@ -119,6 +193,11 @@ document.addEventListener("click", async (e) => {
   const d = t.dataset;
   try {
     if (t.hasAttribute("data-signout")) return signOut();
+    if (d.history) {
+      S.lf = { who: d.history, from: daysAgo(29), to: daysAgo(0) }; S.logins = null; renderLogins();
+      $("#logins").scrollIntoView({ behavior: "smooth" });
+      return refreshLogins();
+    }
     if (t.hasAttribute("data-cancel")) { S.resetFor = S.deleteFor = S.editFor = null; return render(); }
     if (d.edit) { S.editFor = d.edit; S.resetFor = S.deleteFor = null; return render(); }
     if (d.doEdit) {
@@ -154,6 +233,13 @@ document.addEventListener("click", async (e) => {
 
 document.addEventListener("change", async (e) => {
   const t = e.target;
+  if (["lfWho", "lfFrom", "lfTo"].includes(t.id)) {
+    const from = $("#lfFrom").value, to = $("#lfTo").value;
+    if (!from || !to) return;
+    S.lf = { who: $("#lfWho").value, from: from <= to ? from : to, to: from <= to ? to : from };
+    S.logins = null; renderLogins();
+    return refreshLogins();
+  }
   if (t.id === "nRole") {
     // keep what's typed in the form while switching between student and parent fields
     const keep = ["nName", "nUser", "nPass"].map((i) => [i, $("#" + i).value]);
@@ -213,4 +299,5 @@ document.addEventListener("submit", async (e) => {
   S.me = me; render();
   try { await load(); } catch (er) { toast(friendlyError(er)); }
   render();
+  if (S.list) refreshLogins();
 })();

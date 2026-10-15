@@ -5,7 +5,7 @@
                section; admins pick from the three cards.
    ========================================================== */
 
-import { sb, signIn, signOut, getProfile, homeFor, kidHref, nameOf, changePassword, friendlyError, SECTIONS } from "./shared/session.js";
+import { sb, signIn, signOut, getProfile, logLogin, homeFor, kidHref, nameOf, changePassword, friendlyError, SECTIONS } from "./shared/session.js";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -146,7 +146,9 @@ document.addEventListener("click", (e) => {
 
 (async () => {
   try {
-    await route(await getProfile());
+    const profile = await getProfile();
+    if (profile) logLogin("visit", profile.id);
+    await route(profile);
   } catch (er) {
     // Signed in but the profile can't load (e.g. migrations not run yet).
     await sb.auth.signOut();

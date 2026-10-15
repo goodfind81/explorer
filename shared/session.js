@@ -35,9 +35,25 @@ export function loginEmail(name) {
 }
 
 export async function signIn(username, password) {
-  const { error } = await sb.auth.signInWithPassword({ email: loginEmail(username), password });
+  const { data, error } = await sb.auth.signInWithPassword({ email: loginEmail(username), password });
   if (error) throw error;
+  logLogin("sign_in", data.user.id);
   return getProfile();
+}
+
+/**
+ * Login history (login_events). "sign_in" when a password is typed; "visit" when
+ * someone comes back with a saved login, at most once per browser tab.
+ * Never blocks or breaks the page if it fails.
+ */
+const LOGGED_KEY = "kt_logged";
+export function logLogin(kind, userId, section = null) {
+  try {
+    if (kind === "visit" && sessionStorage.getItem(LOGGED_KEY) === userId) return;
+    sessionStorage.setItem(LOGGED_KEY, userId);
+  } catch {}
+  sb.rpc("log_login", { p_kind: kind, p_section: section, p_agent: navigator.userAgent })
+    .then(({ error }) => { if (error) console.warn("Could not log sign-in:", error.message); });
 }
 
 /**
@@ -110,7 +126,10 @@ export async function requireSection(sections) {
   const allowed = [].concat(sections);
   let prof = null;
   try { prof = await getProfile(); } catch (e) { console.warn("Could not load profile:", e); }
-  if (prof && allowed.some((s) => canOpen(prof, s))) return prof;
+  if (prof && allowed.some((s) => canOpen(prof, s))) {
+    logLogin("visit", prof.id, allowed.includes(prof.section) ? prof.section : allowed[0]);
+    return prof;
+  }
   location.replace(PORTAL_URL);
   return new Promise(() => {});
 }

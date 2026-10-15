@@ -31,6 +31,7 @@ supabase/
   migrations/0001_profiles.sql      shared accounts table + signup trigger
   migrations/0002_ascend.sql        ascend_* tables, RLS, server functions
   migrations/0003–0005              forced password change, active-by-default accounts, parent_links
+  migrations/0006_login_events.sql  login history (shown on the Accounts page)
   seed/ascend_questions.sql         90 starter PSAT/SAT questions
   functions/admin-users             create/reset/delete accounts (any section)
   functions/generate-questions      Claude drafts PSAT/SAT questions

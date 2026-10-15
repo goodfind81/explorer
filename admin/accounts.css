@@ -42,3 +42,9 @@ td:last-child .row{justify-content:flex-end}
 
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:999px;font-size:14px;z-index:10}
 .toast[hidden]{display:none}
+
+/* Login history */
+#logins h2{margin:8px 0 12px}
+#logins .form-grid{margin-bottom:12px}
+input[type=date]{font:inherit;color:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);width:100%}
+button.link.mini{font-size:13px;padding:0}
