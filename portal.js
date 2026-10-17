@@ -5,6 +5,7 @@
                section; admins pick from the three cards.
    ========================================================== */
 
+import { mountSitebar } from "./shared/sitebar.js";
 import { sb, signIn, signOut, getProfile, logLogin, homeFor, kidHref, nameOf, changePassword, friendlyError, SECTIONS } from "./shared/session.js";
 
 const $ = (s) => document.querySelector(s);
@@ -93,10 +94,10 @@ function viewMessage(profile, title, text) {
     <div class="actions"><button class="btn ghost" data-signout>Sign out</button></div>`;
 }
 
+// Signed-in users get the site bar (links + Sign out) instead of a header menu.
 function renderWho(profile) {
-  $("#who").innerHTML = profile
-    ? `<span>${esc(profile.display_name || profile.username)}</span><button class="link" data-signout>Sign out</button>`
-    : "";
+  $("#who").innerHTML = "";
+  if (profile) mountSitebar(profile, "home");
 }
 
 /* ───────── routing ───────── */

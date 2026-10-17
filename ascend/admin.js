@@ -1,3 +1,4 @@
+import { mountSitebar } from "../shared/sitebar.js";
 import { sb, $, esc, inline, fmt, today, dstr, toast, friendlyError, requireSection, signOut, PORTAL_URL, passageHtml, answerHtml, ago, ASCEND_SECTIONS, SUBJ } from "./lib.js";
 
 const A = {
@@ -22,7 +23,7 @@ async function fnError(error) {
 
 /* ───────── shell ───────── */
 function renderTop() {
-  $("#who").innerHTML = A.me ? `<span>${esc(A.me.display_name || A.me.username)}</span><a class="note" href="index.html">Student view</a><a class="note" href="${PORTAL_URL}">All sections</a><button class="link note" data-signout>Sign out</button>` : "";
+  $("#who").innerHTML = A.me ? `<a class="note" href="index.html">Try it as a student</a>` : "";
   const tabs = [["report", "Weekly report"], ["questions", "Questions"], ["generate", "Generate"], ["import", "Import CSV"], ["reports", "Reported"]];
   $("#tabs").innerHTML = A.me ? tabs.map(([k, l]) => `<button class="tab" data-tab="${k}" ${A.tab === k ? 'aria-current="page"' : ""}>${l}${k === "reports" && A.report?.open_reports ? ` <span class="pill draft">${A.report.open_reports}</span>` : ""}</button>`).join("") : "";
 }
@@ -459,6 +460,7 @@ document.addEventListener("submit", async (e) => {
 async function boot() {
   const me = await requireSection(["psat", "sat"]);   // signed out → portal
   A.me = me;
+  mountSitebar(me, "questions");
   if (!me || me.role !== "admin") { A.tab = "denied"; return render(); }
   go("report");
 }

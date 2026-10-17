@@ -11,6 +11,7 @@
    ========================================================== */
 
 import { sb, getProfile, signOut, friendlyError, PORTAL_URL } from "../shared/session.js";
+import { mountSitebar } from "../shared/sitebar.js";
 
 const SECTIONS = { g4: "4th Grade", psat: "PSAT", sat: "SAT" };
 const S = { me: null, list: null, links: [], created: null, resetFor: null, deleteFor: null, editFor: null, newRole: "student",
@@ -86,7 +87,6 @@ function kidBoxes(name, checked, parentId = "") {
 
 /* ───────── view ───────── */
 function render() {
-  $("#who").innerHTML = `<a class="note" href="${PORTAL_URL}">All sections</a><button class="link" data-signout>Sign out</button>`;
   const c = S.created;
   const rows = (S.list || []).map((p) => {
     const me = p.id === S.me.id;
@@ -148,7 +148,10 @@ function render() {
 /* Drawn on its own so changing the filter doesn't reset the add-account form. */
 function renderLogins() {
   const w = $("#loginsWrap"); if (w) w.innerHTML = S.list ? loginPanel() : "";
+  // Arriving from the site bar's Logins link: bring the panel into view once it exists.
+  if (location.hash === "#logins" && S.list && !renderLogins.scrolled) { renderLogins.scrolled = true; $("#logins")?.scrollIntoView(); }
 }
+window.addEventListener("hashchange", () => { if (location.hash === "#logins") $("#logins")?.scrollIntoView({ behavior: "smooth" }); });
 
 function seenCell(p) {
   const r = S.seen[p.id];
@@ -296,7 +299,7 @@ document.addEventListener("submit", async (e) => {
   let me = null;
   try { me = await getProfile(); } catch {}
   if (!me || me.role !== "admin" || !me.active) { location.replace(PORTAL_URL); return; }
-  S.me = me; render();
+  S.me = me; mountSitebar(me, location.hash === "#logins" ? "logins" : "accounts"); render();
   try { await load(); } catch (er) { toast(friendlyError(er)); }
   render();
   if (S.list) refreshLogins();

@@ -19,6 +19,7 @@
 
 import { FAMILY_ID, LS_KEYS, setFamilyId } from "./supabase-config.js";
 import { requireSection, signOut, pickKid, g4FamilyId, nameOf, PORTAL_URL } from "../../shared/session.js";
+import { mountSitebar } from "../../shared/sitebar.js";
 
 /* ==========================================================
    Current state
@@ -34,6 +35,7 @@ export async function startSession() {
   // Students see their own data; parents/admins see the kid picked on the portal (?kid=).
   const kid = profile.role === "student" ? profile : pickKid(profile, "g4");
   if (!kid) { location.replace(PORTAL_URL); return new Promise(() => {}); }
+  mountSitebar(profile, profile.role === "parent" ? kid.id : "g4");
   setFamilyId(g4FamilyId(kid));
   setSession(profile.username, profile.role === "student" ? "kid" : "parent");
   kidName = nameOf(kid);

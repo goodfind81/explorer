@@ -1,3 +1,4 @@
+import { mountSitebar } from "../shared/sitebar.js";
 import { sb, $, esc, inline, fmt, fmtDate, today, dstr, toast, friendlyError, requireSection, signOut, PORTAL_URL, pickKid, nameOf, passageHtml, answerHtml, feedbackHtml, streakFrom, ASCEND_SECTIONS, SUBJ, PER_DAY } from "./lib.js";
 
 // watch: the kid a parent (or admin) is viewing read-only; null for students practicing.
@@ -28,17 +29,15 @@ const items = (s) => set(s).items || [];
 function renderTop() {
   if (S.watch) {
     const tr = ASCEND_SECTIONS[S.watch.section];
-    $("#who").innerHTML = `<span class="chip acc">${esc(tr.grade)}</span><span>Viewing ${esc(nameOf(S.watch))}</span><a class="note" href="${PORTAL_URL}">All sections</a><button class="link note" data-signout>Sign out</button>`;
+    $("#who").innerHTML = `<span class="chip acc">${esc(tr.grade)}</span><span>Viewing ${esc(nameOf(S.watch))}</span>`;
     const tabs = [["progress", "Progress"], ["resources", "Official practice"]];
     $("#tabs").innerHTML = tabs.map(([k, l]) => `<button class="tab" data-tab="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${l}</button>`).join("");
     return;
   }
   const pr = S.data?.profile;
   const tr = pr && ASCEND_SECTIONS[pr.section];
-  $("#who").innerHTML = pr ? `<span class="chip acc">${esc(tr.grade)}</span><span>${esc(pr.display_name || pr.username)}</span>
-    ${pr.role === "admin" ? `<a class="note" href="${PORTAL_URL}">All sections</a>` : ""}<button class="link note" data-signout>Sign out</button>` : "";
+  $("#who").innerHTML = pr ? `<span class="chip acc">${esc(tr.grade)}</span>` : "";
   const tabs = [["today", "Today"], ["progress", "Progress"], ["resources", "Official practice"], ["account", "Account"]];
-  if (pr?.role === "admin") tabs.push(["admin", "Admin ↗"]);
   const cur = S.view === "practice" || S.view === "done" ? "today" : S.view;
   $("#tabs").innerHTML = pr ? tabs.map(([k, l]) => `<button class="tab" data-tab="${k}" ${cur === k ? 'aria-current="page"' : ""}>${l}</button>`).join("") : "";
 }
@@ -305,6 +304,8 @@ async function enter() {
 // Sign-in happens on the portal; anyone without a PSAT/SAT account (or admin) is sent back there.
 (async () => {
   const me = await requireSection(["psat", "sat"]);
+  const watching = me.role === "parent" || (me.role === "admin" && new URLSearchParams(location.search).get("kid"));
+  mountSitebar(me, watching && me.role === "parent" ? (pickKid(me, ["psat", "sat"]) || {}).id : "ascend");
   // Parents (and admins following a ?kid= link) get a read-only view of that kid's progress.
   if (me.role === "parent" || (me.role === "admin" && new URLSearchParams(location.search).get("kid"))) {
     S.watch = pickKid(me, ["psat", "sat"]);
