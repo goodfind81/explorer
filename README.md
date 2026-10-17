@@ -35,6 +35,7 @@ supabase/
   migrations/0007_balance_…sql      spread starter-bank answers evenly across A–D
   seed/ascend_questions.sql         90 starter PSAT/SAT questions
   seed/ascend_questions_batch2.sql  194 more (levels 1–2), answers balanced across A–D
+  seed/ascend_questions_batch3.sql  287 more (levels 1–3), incl. SAT-hard level 3
   functions/admin-users             create/reset/delete accounts (any section)
   functions/generate-questions      Claude drafts PSAT/SAT questions
 docs/                               handoff docs (4th Grade + original Ascend notes)
