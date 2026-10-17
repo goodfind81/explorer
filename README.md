@@ -32,7 +32,9 @@ supabase/
   migrations/0002_ascend.sql        ascend_* tables, RLS, server functions
   migrations/0003–0005              forced password change, active-by-default accounts, parent_links
   migrations/0006_login_events.sql  login history (shown on the Accounts page)
+  migrations/0007_balance_…sql      spread starter-bank answers evenly across A–D
   seed/ascend_questions.sql         90 starter PSAT/SAT questions
+  seed/ascend_questions_batch2.sql  194 more (levels 1–2), answers balanced across A–D
   functions/admin-users             create/reset/delete accounts (any section)
   functions/generate-questions      Claude drafts PSAT/SAT questions
 docs/                               handoff docs (4th Grade + original Ascend notes)
