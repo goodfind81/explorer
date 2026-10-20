@@ -15,5 +15,6 @@ import { chapter as ch10 } from "./chapter-10-hydrosphere-water-cycle.js";
 import { chapter as ch11 } from "./chapter-11-water-distribution.js";
 import { chapter as ch12 } from "./chapter-12-ocean-salinity.js";
 import { chapter as ch13 } from "./chapter-13-fresh-water.js";
+import { chapter as ch14 } from "./chapter-14-evaporation-water-journey.js";
 
-export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13];
+export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14];
