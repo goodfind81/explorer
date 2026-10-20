@@ -58,7 +58,7 @@ exports `chapter = { id, name, shortName, studyGuideHtml, miniCheck, chapterQuiz
   chapter in the review notes. Don't edit published chapters unless asked.
 - Write original questions in your own words. Mirroring a homework item's numbers is fine.
 
-## Checks before committing
+## Checks before finishing
 
 Run from the repo root:
 
@@ -73,16 +73,18 @@ eye). For new generators, run each 3,000 times and look for `NaN`, `undefined`,
 
 ## Finish
 
-- Commit on the current branch with message `4th Grade: <what was added>`. **Never push.**
+- **Don't commit and don't push.** Leave the new and changed files uncommitted in
+  the working tree. The parent reviews them, commits, and pushes to publish.
 - Write the review notes to `~/project2026/Schoology Downloads/content_review.md`:
   - what was added, and in which chapters
   - files skipped, and why
   - anything the parent should check
   - a `PROCESSED:` line followed by every source file path you handled or skipped, one per line
 
-## Publishing (in a session, when the parent says "publish")
+## Publishing
 
-The nightly job builds in the worktree `~/project2026/explorer-review` on branch
-`content-review`. Preview it with `python3 -m http.server 8001` from that folder.
-To publish: merge `content-review` into `main`, push, then remove the worktree
-(`git worktree remove ../explorer-review`) and delete the branch.
+The nightly job writes straight into `~/project2026/explorer` on `main` and leaves
+the changes uncommitted. It skips the night (and logs why) if the repo isn't on
+`main`. The parent reviews the changes in VS Code's Source Control panel, then
+commits and pushes. GitHub Pages publishes within a minute or two. Preview first with
+`python3 -m http.server 8001` from the repo root if wanted.
