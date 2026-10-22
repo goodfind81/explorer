@@ -55,6 +55,15 @@ export function renderChapterView(container, config) {
  * then renders the section strip and current section.
  */
 async function refreshAndRender(container, state) {
+  await refreshGate(state);
+  renderCurrentSection(container, state);
+}
+
+/**
+ * Reads the mini-check lock and updates state.quickCheckPassed /
+ * state.quickCheckAttempted. Doesn't render.
+ */
+async function refreshGate(state) {
   const { subject, chapter } = state;
 
   // Check the mini-check lock status
@@ -74,25 +83,20 @@ async function refreshAndRender(container, state) {
 
   state.quickCheckPassed = quickCheckPassed;
   state.quickCheckAttempted = quickCheckAttempted;
-
-  renderCurrentSection(container, state);
 }
 
 /* ==========================================================
    Render the section at state.currentIndex
    ========================================================== */
 
-function renderCurrentSection(container, state) {
-  const { sections, currentIndex, subject, chapter, quickCheckPassed } = state;
-  const section = sections[currentIndex];
+function buildStripHtml(state) {
+  const { currentIndex, quickCheckPassed } = state;
 
   // Determine which sections are locked
-  const studyLocked = false;
   const checkLocked = false;
   const quizLocked = !quickCheckPassed;
 
-  // Build the progress strip
-  const stripHtml = `
+  return `
     <button class="section-step ${currentIndex === 0 ? "current" : ""} ${currentIndex > 0 ? "done" : ""}"
             data-idx="0">1. Study Guide</button>
     <button class="section-step ${currentIndex === 1 ? "current" : ""} ${currentIndex > 1 ? "done" : ""} ${checkLocked ? "locked" : ""}"
@@ -104,25 +108,39 @@ function renderCurrentSection(container, state) {
       3. Chapter Quiz${quizLocked ? " 🔒" : ""}
     </button>
   `;
+}
 
-  container.innerHTML = `
-    <div class="section-strip" id="sectionStrip">
-      ${stripHtml}
-    </div>
-    <div class="section-body" id="sectionBody"></div>
-  `;
+/**
+ * Redraws only the progress strip, leaving the section body
+ * (e.g. a just-finished quiz summary) in place.
+ */
+function renderStrip(container, state) {
+  const strip = container.querySelector("#sectionStrip");
+  if (!strip) return;
+  strip.innerHTML = buildStripHtml(state);
 
   // Wire up section strip (skip locked)
-  container.querySelectorAll(".section-step").forEach(btn => {
+  strip.querySelectorAll(".section-step").forEach(btn => {
     btn.addEventListener("click", () => {
       if (btn.disabled) return;
       const idx = parseInt(btn.dataset.idx);
-      if (idx < sections.length) {
+      if (idx < state.sections.length) {
         state.currentIndex = idx;
         renderCurrentSection(container, state);
       }
     });
   });
+}
+
+function renderCurrentSection(container, state) {
+  const { sections, currentIndex, subject, chapter } = state;
+  const section = sections[currentIndex];
+
+  container.innerHTML = `
+    <div class="section-strip" id="sectionStrip"></div>
+    <div class="section-body" id="sectionBody"></div>
+  `;
+  renderStrip(container, state);
 
   // Render the section content
   const body = container.querySelector("#sectionBody");
@@ -152,7 +170,8 @@ function renderCurrentSection(container, state) {
       }
     },
     onRefreshGate: async () => {
-      await refreshAndRender(container, state);
+      await refreshGate(state);
+      renderStrip(container, state);
     }
   });
 }
@@ -230,16 +249,14 @@ export function renderQuickCheckSection(container, ctx) {
   engine.start();
 
   container.querySelector("#qcBackBtn").addEventListener("click", ctx.onBack);
-  container.querySelector("#qcNextBtn").addEventListener("click", () => {
+  container.querySelector("#qcNextBtn").addEventListener("click", async () => {
     // Force a fresh gate check before advancing
     if (typeof ctx.onRefreshGate === "function") {
-      ctx.onRefreshGate();
+      await ctx.onRefreshGate();
     }
     // The parent will handle moving to the next section
-    setTimeout(() => {
-      const next = document.querySelector('.section-step[data-idx="2"]');
-      if (next && !next.disabled) next.click();
-    }, 150);
+    const next = document.querySelector('.section-step[data-idx="2"]');
+    if (next && !next.disabled) next.click();
   });
 }
 

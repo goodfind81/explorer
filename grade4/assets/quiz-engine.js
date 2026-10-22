@@ -421,9 +421,13 @@ export class QuizEngine {
 
     if (mode === "chapter" && percent === 100) {
       this._renderPerfectScoreCelebration(score, total);
-      return;
+    } else {
+      this._renderSummaryFromResult(score, total, percent);
     }
-    this._renderSummaryFromResult(score, total, percent);
+
+    if (typeof this.config.onComplete === "function") {
+      this.config.onComplete(result);
+    }
   }
 
   /* ==========================================================
