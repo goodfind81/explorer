@@ -1440,3 +1440,87 @@ export function multiplyDecimalByWhole(opts = {}) {
   const choices = shuffleArray([...new Set([product, ...wrong])]);
   return { question, options: choices, correct: choices.indexOf(product), explanation };
 }
+
+/** Wrong answers that misplace the decimal point, plus a near miss; always returns 4 distinct options. */
+function decimalProductChoices(n, d) {
+  const product = formatScaled(n, d);
+  const pool = [formatScaled(n, d - 1), formatScaled(n, d + 1), formatScaled(n + 1, d), formatScaled(n + 10, d), formatScaled(n, Math.max(0, d - 2))];
+  const choices = [product];
+  for (const w of pool) if (choices.length < 4 && !choices.includes(w)) choices.push(w);
+  const shuffled = shuffleArray(choices);
+  return { options: shuffled, correct: shuffled.indexOf(product) };
+}
+
+const PLACE_NAMES = ["ones", "tenths", "hundredths", "thousandths"];
+
+/**
+ * Multiply a decimal by a decimal using a hundredths-grid area model (Lesson 4-5).
+ * Both factors are tenths; one factor is sometimes greater than 1.
+ */
+export function multiplyTenthsModel(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const a = Math.random() < 0.3 ? randInt(11, 69) : randInt(1, 9);   // tenths
+  let b;
+  do { b = randInt(1, 9); } while (a < 10 && b === a && Math.random() < 0.5);
+  const fa = formatScaled(a, 1), fb = formatScaled(b, 1);
+  const n = a * b;
+  const product = formatScaled(n, 2);
+  const grid = a < 10
+    ? `On a hundredths grid, shade ${a} columns for ${fa} and ${b} rows for ${fb}. The double-shaded area has ${a} × ${b} = ${n} small squares, or ${n} hundredths.`
+    : `Think of ${a} tenths × ${b} tenths: ${a} × ${b} = ${n}, and tenths × tenths = hundredths, so it's ${n} hundredths.`;
+  const [x, y] = Math.random() < 0.5 ? [fa, fb] : [fb, fa];
+  const explanation = `${grid} So ${x} × ${y} = ${product}.` +
+    (a < 10 ? " Both factors are less than 1, so the product is less than 1." : "");
+  const question = `Find ${x} × ${y}.`;
+  if (!mc) return { question, answer: product, explanation };
+  return { question, ...decimalProductChoices(n, 2), explanation };
+}
+
+/**
+ * Multiply two decimals (ones and tenths) using partial products (Lesson 4-6).
+ */
+export function multiplyDecimalsPartial(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const wa = randInt(1, 9), ta = randInt(1, 9), wb = randInt(1, 9), tb = randInt(1, 9);
+  const A = wa * 10 + ta, B = wb * 10 + tb;           // tenths
+  const fa = formatScaled(A, 1), fb = formatScaled(B, 1);
+  const n = A * B;                                      // hundredths
+  const product = formatScaled(n, 2);
+  const parts = [
+    `${wa} × ${wb} = ${wa * wb}`,
+    `${wa} × ${formatScaled(tb, 1)} = ${formatScaled(wa * tb, 1)}`,
+    `${formatScaled(ta, 1)} × ${wb} = ${formatScaled(ta * wb, 1)}`,
+    `${formatScaled(ta, 1)} × ${formatScaled(tb, 1)} = ${formatScaled(ta * tb, 2)}`
+  ];
+  const ra = Math.round(A / 10), rb = Math.round(B / 10);
+  const explanation = `Estimate: ${fa} is about ${ra} and ${fb} is about ${rb}, so the product is about ${ra * rb}. ` +
+    `Partial products: ${parts.join("; ")}. Add them: ${product}. ${product} is close to ${ra * rb}, so the answer is reasonable.`;
+  const question = `Find ${fa} × ${fb}.`;
+  if (!mc) return { question, answer: product, explanation };
+  return { question, ...decimalProductChoices(n, 2), explanation };
+}
+
+/**
+ * Multiply decimals using properties: multiply as whole numbers, then multiply
+ * by the place values (0.1 × 0.01 = 0.001, and so on) (Lesson 4-7).
+ */
+export function multiplyDecimalsProperties(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  let d1, d2;
+  do { d1 = randInt(1, 2); d2 = randInt(1, 2); } while (d1 + d2 > 3);
+  const pickFactor = d => {
+    let n;
+    do { n = d === 1 ? randInt(2, 99) : randInt(2, 399); } while (n % 10 === 0);
+    return n;
+  };
+  const n1 = pickFactor(d1), n2 = pickFactor(d2);
+  const f1 = formatScaled(n1, d1), f2 = formatScaled(n2, d2);
+  const unit = d => (d === 1 ? "0.1" : "0.01");
+  const d = d1 + d2;
+  const product = formatScaled(n1 * n2, d);
+  const explanation = `${f1} × ${f2} = (${n1} × ${n2}) × (${unit(d1)} × ${unit(d2)}) = ${formatNumber(n1 * n2)} × ${formatScaled(1, d)} = ${product}. ` +
+    `${PLACE_NAMES[d1].replace(/s$/, "")} × ${PLACE_NAMES[d2].replace(/s$/, "")} = ${PLACE_NAMES[d].replace(/s$/, "")}, so the product has ${d} decimal places.`;
+  const question = `Find ${f1} × ${f2}.`;
+  if (!mc) return { question, answer: product, explanation };
+  return { question, ...decimalProductChoices(n1 * n2, d), explanation };
+}

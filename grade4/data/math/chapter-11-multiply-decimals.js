@@ -1,6 +1,6 @@
 /* ==========================================================
    Math Chapter 11 — Multiply Decimals
-   Covers enVision Topic 4: Lessons 4-1, 4-2, 4-3.
+   Covers enVision Topic 4: Lessons 4-1, 4-2, 4-3, 4-5, 4-6, 4-7.
    Growing chapter — new Topic 4 lessons add new skills as they arrive.
    ========================================================== */
 
@@ -11,7 +11,7 @@ export const chapter = {
 
   studyGuideHtml: `
     <h2>🔢 Multiply Decimals</h2>
-    <p>This chapter covers three big ideas: <strong>multiplying decimals by powers of 10</strong>, <strong>estimating the product of a decimal and a whole number</strong>, and <strong>using models to multiply a decimal by a whole number</strong>.</p>
+    <p>This chapter covers six big ideas: <strong>multiplying decimals by powers of 10</strong>, <strong>estimating the product of a decimal and a whole number</strong>, <strong>multiplying a decimal by a whole number</strong>, and three ways to <strong>multiply a decimal by a decimal</strong>: hundredths grids, partial products, and properties.</p>
 
     <div class="study-guide">
       <div class="sg-row">
@@ -91,6 +91,45 @@ export const chapter = {
           <strong>Step 1 — Ignore the decimal point:</strong> 289 × 3 = 867.<br>
           <strong>Step 2 — Count decimal places:</strong> 2.89 has 2 decimal places, so the answer has 2: <strong>8.67</strong>.<br>
           <strong>Step 3 — Check with an estimate:</strong> 2.89 is about 3, and 3 × 3 = 9. 8.67 is close to 9 ✅
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Big Idea 4 (Lesson 4-5) — Use a Hundredths Grid to Multiply a Decimal by a Decimal</span>
+        <div class="sg-def">
+          Use each factor as one side of a rectangle on a hundredths grid. The <strong>double-shaded area</strong> is the product.<br><br>
+          <strong>Example: 0.7 × 0.9</strong><br>
+          • Shade 7 columns for 0.7 and 9 rows for 0.9.<br>
+          • The double-shaded area has <strong>63</strong> small squares → 63 hundredths.<br>
+          • 0.7 × 0.9 = <strong>0.63</strong><br><br>
+          💡 Both factors are less than 1, so the product is also <strong>less than 1</strong>.
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Big Idea 5 (Lesson 4-6) — Multiply Decimals Using Partial Products</span>
+        <div class="sg-def">
+          <strong>Step 1 — Estimate</strong> so you can check your answer. 9.5 × 5.6 → 10 × 6 = <strong>60</strong>.<br><br>
+          <strong>Step 2 — Find the partial products</strong> (an area model helps you keep track):<br>
+          • 0.6 × 0.5 = 0.30<br>
+          • 0.6 × 9 = 5.4<br>
+          • 5 × 0.5 = 2.5<br>
+          • 5 × 9 = 45<br><br>
+          <strong>Step 3 — Add them:</strong> 0.30 + 5.4 + 2.5 + 45 = <strong>53.20</strong>.<br>
+          53.2 is close to the estimate 60, so the answer is <strong>reasonable</strong> ✅
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Big Idea 6 (Lesson 4-7) — Use Properties to Multiply Decimals</span>
+        <div class="sg-def">
+          Split each decimal into a <strong>whole number</strong> times a <strong>place value</strong>, multiply the whole numbers, then multiply the place values.<br><br>
+          <strong>Example: 2.5 × 3.25</strong><br>
+          = (25 × 325) × (0.1 × 0.01)<br>
+          = 8,125 × 0.001<br>
+          = <strong>8.125</strong><br><br>
+          • tenth × tenth = <strong>hundredth</strong> (0.1 × 0.1 = 0.01)<br>
+          • tenth × hundredth = <strong>thousandth</strong> (0.1 × 0.01 = 0.001)
         </div>
       </div>
     </div>
@@ -316,6 +355,120 @@ export const chapter = {
       options: ["14.4", "1.44", "0.144", "0.0144"],
       correct: 2,
       explanation: "0.4 is one tenth of 4, so the product is one tenth of 1.44: 0.144."
+    },
+    {
+      question: "Use a hundredths grid to find 0.7 × 0.9.",
+      options: ["0.63", "6.3", "0.063", "0.16"],
+      correct: 0,
+      explanation: "Shade 7 columns and 9 rows. The double-shaded area has 63 squares, or 63 hundredths: 0.63."
+    },
+    {
+      question: "Find 0.8 × 0.1.",
+      options: ["0.8", "0.08", "0.008", "0.9"],
+      correct: 1,
+      explanation: "8 tenths × 1 tenth = 8 hundredths = 0.08."
+    },
+    {
+      question: "Find 1.9 × 0.4.",
+      options: ["7.6", "0.076", "0.76", "2.3"],
+      correct: 2,
+      explanation: "19 tenths × 4 tenths = 76 hundredths = 0.76. Check: 2 × 0.4 = 0.8, and 0.76 is close ✅"
+    },
+    {
+      question: "On a hundredths grid, you shade 5 columns and 6 rows. What does the double-shaded area show?",
+      options: ["5 × 6 = 30", "0.5 + 0.6 = 1.1", "0.5 × 0.6 = 3", "0.5 × 0.6 = 0.3"],
+      correct: 3,
+      explanation: "5 columns show 0.5 and 6 rows show 0.6. They overlap in 30 squares: 30 hundredths = 0.30 = 0.3."
+    },
+    {
+      question: "A garden is 0.9 meter long and 0.6 meter wide. What is its area?",
+      options: ["0.54 square meter", "5.4 square meters", "1.5 square meters", "0.054 square meter"],
+      correct: 0,
+      explanation: "Area = length × width = 0.9 × 0.6 = 54 hundredths = 0.54 square meter."
+    },
+    {
+      question: "Both factors in a multiplication problem are less than 1. What must be true about the product?",
+      options: ["It is greater than 1", "It is less than 1", "It equals 1", "It is greater than both factors"],
+      correct: 1,
+      explanation: "When both factors are less than 1, the product is also less than 1. Example: 0.7 × 0.9 = 0.63."
+    },
+    {
+      question: "A truck travels 9.5 miles on 1 gallon of fuel. How far will it travel on 5.6 gallons?",
+      options: ["532 miles", "5.32 miles", "60 miles", "53.2 miles"],
+      correct: 3,
+      explanation: "Partial products: 45 + 2.5 + 5.4 + 0.30 = 53.2 miles. The estimate 10 × 6 = 60 shows this is reasonable."
+    },
+    {
+      question: "Round each factor to the nearest whole number to estimate 8.6 × 9.2.",
+      options: ["81", "72", "90", "79.12"],
+      correct: 0,
+      explanation: "8.6 → 9 and 9.2 → 9. 9 × 9 = 81."
+    },
+    {
+      question: "Find 3.9 × 7.1.",
+      options: ["276.9", "27.69", "2.769", "21.69"],
+      correct: 1,
+      explanation: "Partial products: 3 × 7 = 21, 3 × 0.1 = 0.3, 0.9 × 7 = 6.3, 0.9 × 0.1 = 0.09. 21 + 0.3 + 6.3 + 0.09 = 27.69. Estimate: 4 × 7 = 28 ✅"
+    },
+    {
+      question: "Which partial products add up to 1.3 × 2.3?",
+      options: ["2 + 3 + 6 + 9", "1 + 2 + 0.3 + 0.3", "2 + 0.3 + 0.6 + 0.09", "2 + 0.6 + 0.9"],
+      correct: 2,
+      explanation: "1 × 2 = 2, 1 × 0.3 = 0.3, 0.3 × 2 = 0.6, 0.3 × 0.3 = 0.09. Together: 2.99."
+    },
+    {
+      question: "A bag of grass seed weighs 5.8 pounds. How much do 2.5 bags weigh?",
+      options: ["13.8 pounds", "8.3 pounds", "145 pounds", "14.5 pounds"],
+      correct: 3,
+      explanation: "5.8 × 2.5: 10 + 2.5 + 1.6 + 0.4 = 14.5 pounds. Estimate: 6 × 2.5 = 15 ✅"
+    },
+    {
+      question: "One mile is about 1.6 kilometers. About how many kilometers are in 1.8 miles?",
+      options: ["2.88", "28.8", "3.4", "0.288"],
+      correct: 0,
+      explanation: "1.6 × 1.8: 1 + 0.8 + 0.6 + 0.48 = 2.88. Estimate: 2 × 2 = 4, and 2.88 is reasonable because both factors were rounded up."
+    },
+    {
+      question: "Marco hikes 2.5 miles each hour. At that speed, how far will he hike in 3.25 hours?",
+      options: ["81.25 miles", "8.125 miles", "0.8125 mile", "5.75 miles"],
+      correct: 1,
+      explanation: "(25 × 325) × (0.1 × 0.01) = 8,125 × 0.001 = 8.125 miles."
+    },
+    {
+      question: "Which expression is equivalent to 0.3 × 6.2?",
+      options: ["(3 × 62) × (0.01 × 0.1)", "(3 × 62) × (10 × 10)", "(3 × 62) × (0.1 × 0.1)", "(3 × 62) × (0.01 × 0.01)"],
+      correct: 2,
+      explanation: "0.3 = 3 × 0.1 and 6.2 = 62 × 0.1, so 0.3 × 6.2 = (3 × 62) × (0.1 × 0.1) = 186 × 0.01 = 1.86."
+    },
+    {
+      question: "What is 0.1 × 0.01?",
+      options: ["0.01", "0.11", "0.001", "0.0001"],
+      correct: 2,
+      explanation: "One tenth times one hundredth equals one thousandth: 0.001."
+    },
+    {
+      question: "Find 0.6 × 0.35.",
+      options: ["0.21", "2.1", "0.021", "0.95"],
+      correct: 0,
+      explanation: "(6 × 35) × (0.1 × 0.01) = 210 × 0.001 = 0.210 = 0.21."
+    },
+    {
+      question: "Find 0.07 × 1.2.",
+      options: ["0.84", "0.084", "0.0084", "1.27"],
+      correct: 1,
+      explanation: "(7 × 12) × (0.01 × 0.1) = 84 × 0.001 = 0.084."
+    },
+    {
+      question: "Helen uses 0.12 kilogram of nuts in each batch of granola. How many kilograms does she use for 2.5 batches?",
+      options: ["3 kg", "0.03 kg", "2.62 kg", "0.3 kg"],
+      correct: 3,
+      explanation: "(12 × 25) × (0.01 × 0.1) = 300 × 0.001 = 0.300 = 0.3 kg."
+    },
+    {
+      question: "Which rectangular room has the greatest area? Room A: 3.5 m by 4.4 m. Room B: 3.8 m by 3.8 m. Room C: 3.6 m by 4.1 m.",
+      options: ["Room A", "Room B", "Room C", "They are all the same"],
+      correct: 0,
+      explanation: "Room A: 15.4 square meters. Room B: 14.44. Room C: 14.76. Room A is the largest."
     }
   ],
 
@@ -343,6 +496,30 @@ export const chapter = {
       args: {},
       remember: "Multiply as if there were no decimal point. Then give the answer the same number of decimal places as the decimal factor. Estimate to check.",
       workedExample: "Find 2.89 × 3:\n289 × 3 = 867\n2.89 has 2 decimal places → 8.67\nCheck: 3 × 3 = 9 ✅"
+    },
+    {
+      key: "multiply-tenths-grid",
+      label: "Use a hundredths grid to multiply a decimal by a decimal",
+      generator: "multiplyTenthsModel",
+      args: {},
+      remember: "Shade one factor as columns and the other as rows. Count the double-shaded squares: that many hundredths is the product. If both factors are less than 1, the product is less than 1.",
+      workedExample: "0.7 × 0.9:\n7 columns and 9 rows overlap in 63 squares\n63 hundredths = 0.63"
+    },
+    {
+      key: "multiply-decimals-partial-products",
+      label: "Multiply decimals using partial products",
+      generator: "multiplyDecimalsPartial",
+      args: {},
+      remember: "Estimate first. Multiply each place by each place, then add the partial products. Compare with your estimate to check that the answer is reasonable.",
+      workedExample: "9.5 × 5.6 (estimate 10 × 6 = 60):\n0.6 × 0.5 = 0.30\n0.6 × 9 = 5.4\n5 × 0.5 = 2.5\n5 × 9 = 45\nTotal = 53.2 ✅"
+    },
+    {
+      key: "multiply-decimals-properties",
+      label: "Use properties to multiply decimals",
+      generator: "multiplyDecimalsProperties",
+      args: {},
+      remember: "Write each decimal as a whole number times 0.1 or 0.01. Multiply the whole numbers, then multiply by the place values. Tenth × tenth = hundredth; tenth × hundredth = thousandth.",
+      workedExample: "2.5 × 3.25\n= (25 × 325) × (0.1 × 0.01)\n= 8,125 × 0.001\n= 8.125"
     }
   ]
 };
