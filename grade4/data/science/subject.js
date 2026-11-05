@@ -17,5 +17,8 @@ import { chapter as ch12 } from "./chapter-12-ocean-salinity.js";
 import { chapter as ch13 } from "./chapter-13-fresh-water.js";
 import { chapter as ch14 } from "./chapter-14-evaporation-water-journey.js";
 import { chapter as ch15 } from "./chapter-15-watersheds-aquifers.js";
+import { chapter as ch16 } from "./chapter-16-water-cycle-review.js";
+import { chapter as ch17 } from "./chapter-17-atmosphere-layers.js";
+import { chapter as ch18 } from "./chapter-18-air-pressure.js";
 
-export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, ch15];
+export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10, ch11, ch12, ch13, ch14, ch15, ch16, ch17, ch18];

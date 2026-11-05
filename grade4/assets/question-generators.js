@@ -1524,3 +1524,144 @@ export function multiplyDecimalsProperties(opts = {}) {
   if (!mc) return { question, answer: product, explanation };
   return { question, ...decimalProductChoices(n1 * n2, d), explanation };
 }
+
+/**
+ * Place the decimal point in a product that is shown without one (Topic 4 Review).
+ * The second factor is sometimes a whole number. Products never end in 0,
+ * so the digits shown always match the written answer.
+ */
+export function placeDecimalPoint(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  let d1, d2, n1, n2;
+  do {
+    d1 = randInt(1, 2); d2 = randInt(0, 2);
+    if (d1 + d2 > 3) continue;
+    n1 = d1 === 1 ? randInt(11, 199) : randInt(11, 999);
+    n2 = d2 === 0 ? randInt(2, 9) : d2 === 1 ? randInt(2, 99) : randInt(11, 399);
+  } while (d1 + d2 > 3 || n1 % 10 === 0 || n2 % 10 === 0 || (n1 * n2) % 10 === 0);
+  const f1 = formatScaled(n1, d1), f2 = formatScaled(n2, d2);
+  const d = d1 + d2;
+  const product = formatScaled(n1 * n2, d);
+  const places = (f, k) => `${f} has ${k} decimal place${k === 1 ? "" : "s"}`;
+  const explanation = `Count the decimal places in the factors: ${places(f1, d1)} and ${places(f2, d2)}, so the product has ${d1} + ${d2} = ${d}. ` +
+    `Start at the right of ${n1 * n2} and move ${d} place${d > 1 ? "s" : ""} left: ${f1} × ${f2} = ${product}.`;
+  const question = `The product is shown without a decimal point: ${f1} × ${f2} = ${n1 * n2}. Where does the decimal point go? Write the product.`;
+  if (!mc) return { question, answer: product, explanation };
+
+  const shifts = [d - 2, d - 1, d + 1, d + 2].filter(k => k >= 0);
+  const choices = [product];
+  for (const k of shifts) if (choices.length < 4) choices.push(formatScaled(n1 * n2, k));
+  const options = shuffleArray(choices);
+  return { question, options, correct: options.indexOf(product), explanation };
+}
+
+/** Cents as "12.05" (always 2 decimal places, no $ sign). */
+function formatCents(c) {
+  return `${formatNumber(Math.floor(c / 100))}.${String(c % 100).padStart(2, "0")}`;
+}
+
+const SHOPPERS = ["Patti", "Marcus", "Lena", "Diego", "Priya", "Sam"];
+const SHOP_ITEMS = [
+  ["a loaf of bread", "muffins", "a bottle of juice"],
+  ["a notebook", "pencils", "a glue stick"],
+  ["a bag of apples", "bananas", "a carton of milk"],
+  ["a ball", "stickers", "a water bottle"]
+];
+
+/**
+ * Two-step word problems where you write an equation (Lesson 4-8, Model with Math).
+ * Either find the change after buying several items, or the total area of a
+ * shape made of two rectangles. Money is kept in cents and lengths in tenths.
+ */
+export function multiStepDecimal(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+
+  if (Math.random() < 0.6) {
+    const who = pick(SHOPPERS);
+    const [one, many, last] = pick(SHOP_ITEMS);
+    const p1 = randInt(101, 599), k = randInt(2, 6), each = 5 * randInt(15, 60), p3 = randInt(101, 399);
+    const total = p1 + k * each + p3;
+    const bill = total < 2000 ? 2000 : 5000;
+    const change = bill - total;
+    const question = `${who} buys ${one} for $${formatCents(p1)}, ${k} ${many} that cost $${formatCents(each)} each, and ${last} for $${formatCents(p3)}. ` +
+      `${who} pays with a $${bill / 100} bill. How much change should ${who} get?` + (mc ? "" : " (Type the dollar amount without the $ sign.)");
+    const explanation = `First find the total cost. ${k} × $${formatCents(each)} = $${formatCents(k * each)}. ` +
+      `$${formatCents(p1)} + $${formatCents(k * each)} + $${formatCents(p3)} = $${formatCents(total)}. ` +
+      `Then subtract from the bill: $${bill / 100}.00 − $${formatCents(total)} = $${formatCents(change)}.`;
+    if (!mc) return { question, answer: formatCents(change), explanation };
+
+    const correct = `$${formatCents(change)}`;
+    // Forgot to subtract, forgot to multiply, then near misses; always leaves 4 distinct options.
+    const pool = [total, bill - (p1 + each + p3), change + each, change + 100, change + 10, change + 1].map(c => `$${formatCents(c)}`);
+    const choices = [correct];
+    for (const w of pool) if (choices.length < 4 && !choices.includes(w)) choices.push(w);
+    const options = shuffleArray(choices);
+    return { question, options, correct: options.indexOf(correct), explanation };
+  }
+
+  // Area of two rectangles, all sides in tenths → each area in hundredths.
+  const side = () => { let n; do { n = randInt(5, 39); } while (n % 10 === 0); return n; };
+  const a = side(), b = side(), c = side(), d = side();
+  const A1 = a * b, A2 = c * d, sum = A1 + A2;
+  const f = n => formatScaled(n, 1);
+  const question = `A window is made of two rectangular panes of glass. One pane is ${f(a)} ft by ${f(b)} ft. The other is ${f(c)} ft by ${f(d)} ft. ` +
+    `What is the total area of the window, in square feet?`;
+  const explanation = `First find the area of each pane: ${f(a)} × ${f(b)} = ${formatScaled(A1, 2)} and ${f(c)} × ${f(d)} = ${formatScaled(A2, 2)}. ` +
+    `Then add: ${formatScaled(A1, 2)} + ${formatScaled(A2, 2)} = ${formatScaled(sum, 2)} square feet.`;
+  if (!mc) return { question, answer: formatScaled(sum, 2), explanation };
+  return { question, ...decimalProductChoices(sum, 2), explanation };
+}
+
+/**
+ * Estimate a product of two decimals by rounding one to the nearest ten and
+ * the other to the nearest hundred (Topic 4 Re-take Review Task Cards).
+ * Tenths digits are never 0 and nothing sits exactly halfway, so rounding is never a tie.
+ */
+export function estimateTensHundreds(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  let a, b;                                              // tenths
+  do { a = randInt(111, 949); } while (a % 10 === 0);   // 11.1 – 94.9
+  do { b = randInt(1501, 9499); } while (b % 10 === 0); // 150.1 – 949.9
+  const fa = formatScaled(a, 1), fb = formatScaled(b, 1);
+  const ra = Math.round(a / 100) * 10, rb = Math.round(b / 1000) * 100;
+  const est = ra * rb;
+  const [x, y, rx, ry] = Math.random() < 0.5 ? [fa, fb, ra, rb] : [fb, fa, rb, ra];
+  const question = `Estimate ${x} × ${y}. Round to the nearest ten and hundred.`;
+  const explanation = `${fa} rounds to ${ra} (nearest ten) and ${fb} rounds to ${formatNumber(rb)} (nearest hundred). ` +
+    `${formatNumber(rx)} × ${formatNumber(ry)} = ${formatNumber(est)}. Tip: ${ra / 10} × ${rb / 100} = ${(ra / 10) * (rb / 100)}, then write the 3 zeros.`;
+  const answer = formatNumber(est);
+  if (!mc) return { question, answer, explanation };
+  const choices = shuffleArray([answer, formatNumber(est / 10), formatNumber(est / 100), formatNumber(est * 10)]);
+  return { question, options: choices, correct: choices.indexOf(answer), explanation };
+}
+
+const TIMES_STORIES = [
+  // [question builder, unit]
+  (w, x) => [`A truck carries ${w} boxes. Each box weighs ${x} pounds. What is the total weight of the boxes, in pounds?`, "pounds"],
+  (w, x) => [`A small bird weighs ${x} ounces. A large bird weighs ${w} times as much. How much does the large bird weigh, in ounces?`, "ounces"],
+  (w, x) => [`It takes ${x} minutes to bike around the block once. How many minutes does it take to bike around it ${w} times?`, "minutes"],
+  (w, x) => [`A family uses ${x} gallons of water a day for cooking. How many gallons do they use in ${w} days?`, "gallons"],
+  (w, x) => [`A puppy weighs ${x} kilograms. A grown dog weighs ${w} times as much. How much does the grown dog weigh, in kilograms?`, "kilograms"]
+];
+
+/**
+ * Word problem: a 2-digit whole number × a decimal (Topic 4 Re-take Review Task Cards).
+ * Decimals are tenths (1.1–9.9) or, with smaller whole numbers, hundredths.
+ */
+export function multiplyDecimalByTwoDigit(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const hundredths = Math.random() < 0.3;
+  let n, d, w;
+  if (hundredths) { d = 2; do { n = randInt(101, 999); } while (n % 5 !== 0 || n % 10 === 0); w = randInt(11, 25); }
+  else { d = 1; do { n = randInt(11, 99); } while (n % 10 === 0); w = randInt(12, 89); }
+  const x = formatScaled(n, d);
+  const product = formatScaled(w * n, d);
+  const [question, unit] = pick(TIMES_STORIES)(w, x);
+  const scale = Math.pow(10, d);
+  const rx = Math.round(n / scale), rw = Math.round(w / 10) * 10;
+  const explanation = `Estimate: ${x} is about ${rx} and ${w} is about ${rw}, so about ${rx * rw}. ` +
+    `Multiply as whole numbers: ${formatNumber(n)} × ${w} = ${formatNumber(n * w)}. ${x} has ${d} decimal place${d > 1 ? "s" : ""}, ` +
+    `so the product does too: ${(w * n) % 10 === 0 ? `${formatScaled(Math.floor(w * n / scale), 0)}.${String(w * n % scale).padStart(d, "0")} = ` : ""}${product} ${unit}.`;
+  if (!mc) return { question, answer: product, explanation };
+  return { question, ...decimalProductChoices(w * n, d), explanation };
+}

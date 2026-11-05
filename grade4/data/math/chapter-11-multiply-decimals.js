@@ -1,6 +1,7 @@
 /* ==========================================================
    Math Chapter 11 — Multiply Decimals
-   Covers enVision Topic 4: Lessons 4-1, 4-2, 4-3, 4-5, 4-6, 4-7.
+   Covers enVision Topic 4: Lessons 4-1, 4-2, 4-3, 4-5, 4-6, 4-7,
+   plus the Topic 4 Review (4.1–4.7 Review Do-Now).
    Growing chapter — new Topic 4 lessons add new skills as they arrive.
    ========================================================== */
 
@@ -11,7 +12,7 @@ export const chapter = {
 
   studyGuideHtml: `
     <h2>🔢 Multiply Decimals</h2>
-    <p>This chapter covers six big ideas: <strong>multiplying decimals by powers of 10</strong>, <strong>estimating the product of a decimal and a whole number</strong>, <strong>multiplying a decimal by a whole number</strong>, and three ways to <strong>multiply a decimal by a decimal</strong>: hundredths grids, partial products, and properties.</p>
+    <p>This chapter covers six big ideas: <strong>multiplying decimals by powers of 10</strong>, <strong>estimating the product of a decimal and a whole number</strong>, <strong>multiplying a decimal by a whole number</strong>, and three ways to <strong>multiply a decimal by a decimal</strong>: hundredths grids, partial products, and properties. It ends with a <strong>Topic 4 Review</strong>.</p>
 
     <div class="study-guide">
       <div class="sg-row">
@@ -130,6 +131,31 @@ export const chapter = {
           = <strong>8.125</strong><br><br>
           • tenth × tenth = <strong>hundredth</strong> (0.1 × 0.1 = 0.01)<br>
           • tenth × hundredth = <strong>thousandth</strong> (0.1 × 0.01 = 0.001)
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Topic 4 Review — Where Does the Decimal Point Go?</span>
+        <div class="sg-def" style="background:#FFF9C4;">
+          <strong>Count the decimal places in BOTH factors.</strong> The product has that many decimal places.<br><br>
+          <strong>Example: 2.34 × 5 = 1170 (no decimal point yet)</strong><br>
+          • 2.34 has 2 decimal places and 5 has 0 → the product has <strong>2</strong>.<br>
+          • 1170 → <strong>11.70</strong><br>
+          • Check: 2.34 is about 2, and 2 × 5 = 10. 11.70 is close to 10 ✅<br><br>
+          <strong>Is it in the right place? 4.3 × 2.6 = 1.118 ❌</strong><br>
+          • 1 + 1 = 2 decimal places, and the estimate is 4 × 3 = 12.<br>
+          • So the product is <strong>11.18</strong>, not 1.118.
+        </div>
+      </div>
+
+      <div class="sg-row">
+        <span class="sg-label">Topic 4 Review — Find the Missing Factor</span>
+        <div class="sg-def">
+          <strong>5.8 × ▢ = 33.64</strong><br>
+          • Estimate: 6 × 6 = 36, so ▢ is about 6.<br>
+          • Try a choice close to 6 and multiply: 5.8 × 5.8 = <strong>33.64</strong> ✅<br><br>
+          <strong>6.725 × ▢ = 672.5</strong><br>
+          • The decimal point moved <strong>2 places</strong> to the right, so ▢ = <strong>100</strong>.
         </div>
       </div>
     </div>
@@ -469,6 +495,24 @@ export const chapter = {
       options: ["Room A", "Room B", "Room C", "They are all the same"],
       correct: 0,
       explanation: "Room A: 15.4 square meters. Room B: 14.44. Room C: 14.76. Room A is the largest."
+    },
+    {
+      question: "The product is shown without a decimal point: 1.36 × 7 = 952. Where does the decimal point go?",
+      options: ["0.952", "95.2", "9.52", "952"],
+      correct: 2,
+      explanation: "1.36 has 2 decimal places and 7 has 0, so the product has 2: 9.52. Check: 1 × 7 = 7, and 9.52 is reasonable."
+    },
+    {
+      question: "Is the decimal point in the correct place? 3.2 × 1.4 = 0.448",
+      options: ["Yes, it is correct", "No, it should be 44.8", "No, it should be 448", "No, it should be 4.48"],
+      correct: 3,
+      explanation: "Each factor has 1 decimal place, so the product has 2: 4.48. Estimate: 3 × 1 = 3, so 0.448 is much too small."
+    },
+    {
+      question: "4.5 × ▢ = 20.25. What is the missing factor?",
+      options: ["4.5", "5.5", "3.5", "4.2"],
+      correct: 0,
+      explanation: "Estimate: 20 ÷ 5 is about 4. Try 4.5: 4.5 × 4.5 = 20.25 ✅"
     }
   ],
 
@@ -520,6 +564,14 @@ export const chapter = {
       args: {},
       remember: "Write each decimal as a whole number times 0.1 or 0.01. Multiply the whole numbers, then multiply by the place values. Tenth × tenth = hundredth; tenth × hundredth = thousandth.",
       workedExample: "2.5 × 3.25\n= (25 × 325) × (0.1 × 0.01)\n= 8,125 × 0.001\n= 8.125"
+    },
+    {
+      key: "place-decimal-point-product",
+      label: "Place the decimal point in a product",
+      generator: "placeDecimalPoint",
+      args: {},
+      remember: "Add up the decimal places in both factors. Start at the right of the digits and move left that many places. Estimate to check that the answer makes sense.",
+      workedExample: "2.34 × 5 = 1170\n2 + 0 = 2 decimal places → 11.70\nCheck: 2 × 5 = 10 ✅"
     }
   ]
 };
