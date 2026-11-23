@@ -17,5 +17,7 @@ import { chapter as ch11 } from "./chapter-11-multiply-decimals.js";
 import { chapter as ch12 } from "./chapter-12-topic-4-review.js";
 import { chapter as ch13 } from "./chapter-13-topic-4-test-practice-a.js";
 import { chapter as ch14 } from "./chapter-14-topic-4-test-practice-b.js";
+import { chapter as ch15 } from "./chapter-15-topic-5-get-ready.js";
+import { chapter as ch16 } from "./chapter-16-topic-5-review.js";
 
-export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9a, ch9, ch10, ch11, ch12, ch13, ch14];
+export const chapters = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9a, ch9, ch10, ch11, ch12, ch13, ch14, ch15, ch16];

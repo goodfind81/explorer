@@ -1026,12 +1026,16 @@ export function estimateProduct(opts = {}) {
 
   // Pick factor sizes
   const aIsThreeDigit = Math.random() < 0.4;
-  const a = aIsThreeDigit ? randInt(100, 999) : randInt(11, 99);
-  const b = randInt(11, 99);
-
-  // Round each to the leading digit
-  const roundedA = roundToLeading(a);
-  const roundedB = roundToLeading(b);
+  let a, b, roundedA, roundedB;
+  // Reroll when both factors are already round (e.g. 90 × 50): there's
+  // nothing to estimate and the exact product would duplicate the estimate.
+  do {
+    a = aIsThreeDigit ? randInt(100, 999) : randInt(11, 99);
+    b = randInt(11, 99);
+    // Round each to the leading digit
+    roundedA = roundToLeading(a);
+    roundedB = roundToLeading(b);
+  } while (a === roundedA && b === roundedB);
   const estimate = roundedA * roundedB;
 
   // Determine if it's an over/under estimate
@@ -1664,4 +1668,307 @@ export function multiplyDecimalByTwoDigit(opts = {}) {
     `so the product does too: ${(w * n) % 10 === 0 ? `${formatScaled(Math.floor(w * n / scale), 0)}.${String(w * n % scale).padStart(d, "0")} = ` : ""}${product} ${unit}.`;
   if (!mc) return { question, answer: product, explanation };
   return { question, ...decimalProductChoices(w * n, d), explanation };
+}
+
+/* ==========================================================
+   Topic 5 (divide whole numbers): Review What You Know
+   ========================================================== */
+
+const DIVIDE_STORIES = [
+  (dividend, divisor) => `${dividend} people volunteered to help at a fair. They formed ${divisor} equal groups. How many volunteers were in each group?`,
+  (dividend, divisor) => `A librarian puts ${dividend} books equally on ${divisor} shelves. How many books go on each shelf?`,
+  (dividend, divisor) => `A coach splits ${dividend} players into ${divisor} equal teams. How many players are on each team?`,
+  (dividend, divisor) => `${dividend} stickers are shared equally among ${divisor} friends. How many stickers does each friend get?`
+];
+
+/**
+ * Divide a whole number with no remainder: a basic-fact pattern (630 ÷ 9),
+ * a 3-digit number ÷ a 1-digit number (755 ÷ 5), or a story with a
+ * 2-digit divisor (132 ÷ 12). Built from the quotient, so it always divides evenly.
+ */
+export function divideWholeNumbers(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const r = Math.random();
+  let divisor, quotient, kind;
+  if (r < 0.3) {
+    kind = "fact"; divisor = randInt(2, 9); quotient = randInt(2, 9) * 10;
+  } else if (r < 0.7) {
+    kind = "long"; divisor = randInt(2, 9);
+    quotient = randInt(Math.ceil(100 / divisor), Math.floor(999 / divisor));
+  } else {
+    kind = "story"; divisor = randInt(11, 15); quotient = randInt(6, 25);
+  }
+  const dividend = divisor * quotient;
+  const question = kind === "story"
+    ? pick(DIVIDE_STORIES)(formatNumber(dividend), divisor)
+    : `Find ${formatNumber(dividend)} ÷ ${divisor}.`;
+  let explanation;
+  if (kind === "fact") {
+    explanation = `Use a basic fact: ${dividend / 10} ÷ ${divisor} = ${quotient / 10}, so ${dividend} ÷ ${divisor} = ${quotient} (${dividend / 10} tens ÷ ${divisor} = ${quotient / 10} tens). ` +
+      `Check: ${quotient} × ${divisor} = ${dividend}.`;
+  } else {
+    explanation = `Think: what times ${divisor} makes ${formatNumber(dividend)}? ${divisor} × ${quotient} = ${formatNumber(dividend)}, so ${formatNumber(dividend)} ÷ ${divisor} = ${quotient}. ` +
+      `Check by multiplying: ${quotient} × ${divisor} = ${formatNumber(dividend)}.`;
+  }
+  const answer = formatNumber(quotient);
+  if (!mc) return { question, answer, explanation };
+  const wrong = new Set();
+  for (const w of [quotient + 1, quotient - 1, quotient * 10, quotient + 10, quotient - 10, dividend - divisor]) {
+    if (w > 0 && w !== quotient && wrong.size < 3) wrong.add(formatNumber(w));
+  }
+  const choices = shuffleArray([answer, ...wrong]);
+  return { question, options: choices, correct: choices.indexOf(answer), explanation };
+}
+
+/**
+ * Division vocabulary: name the dividend, divisor or quotient in an equation.
+ * The typed answer is the number.
+ */
+export function divisionVocab(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  let divisor, quotient;
+  do { divisor = randInt(2, 12); quotient = randInt(2, 12) * pick([1, 1, 10]); } while (divisor === quotient);
+  const dividend = divisor * quotient;
+  const term = pick(["dividend", "divisor", "quotient"]);
+  const value = term === "dividend" ? dividend : term === "divisor" ? divisor : quotient;
+  const eq = `${formatNumber(dividend)} ÷ ${divisor} = ${formatNumber(quotient)}`;
+  const question = `In the equation ${eq}, which number is the ${term}?`;
+  const explanation = `In ${eq}: the dividend is the number being divided (${formatNumber(dividend)}), ` +
+    `the divisor is the number used to divide (${divisor}), and the quotient is the result (${formatNumber(quotient)}). ` +
+    `So the ${term} is ${formatNumber(value)}.`;
+  const answer = formatNumber(value);
+  if (!mc) return { question, answer, explanation };
+  const others = [dividend, divisor, quotient].filter(v => v !== value).map(formatNumber);
+  const choices = shuffleArray([answer, ...others, formatNumber(dividend + divisor)]);
+  return { question, options: choices, correct: choices.indexOf(answer), explanation };
+}
+
+/* ==========================================================
+   Topic 5, Lesson 5-1: Use Patterns and Mental Math to Divide
+   ========================================================== */
+
+const TENS_DIVIDE_STORIES = [
+  (dividend, divisor) => `A school spends $${dividend} on ${divisor} new computers. Each computer costs the same amount. How much does each computer cost, in dollars?`,
+  (dividend, divisor) => `A carton holds ${dividend} staples in ${divisor} equal packages. How many staples are in each package?`,
+  (dividend, divisor) => `A stadium has ${dividend} seats in ${divisor} equal sections. How many seats are in each section?`,
+  (dividend, divisor) => `A jet carried ${dividend} passengers on ${divisor} trips. The plane was full every time. How many passengers were on each trip?`
+];
+
+/**
+ * Divide by a multiple of 10 using a basic fact and place-value patterns
+ * (12,000 ÷ 20 → 12 ÷ 2 = 6 → 600). Built from the basic fact, so it always
+ * divides evenly. Dividends run from 2 digits up to 81,000.
+ */
+export function divideMultiplesOf10(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const d = randInt(2, 9);                 // divisor digit → divisor d × 10
+  const q = randInt(2, 9);                 // basic-fact quotient
+  const zeros = randInt(1, 3);             // zeros after the basic-fact dividend
+  const factDividend = d * q;              // e.g. 12 for 12 ÷ 2
+  const pow = Math.pow(10, zeros);
+  const dividend = factDividend * pow;     // e.g. 12,000
+  const divisor = d * 10;                  // e.g. 20
+  const quotient = q * pow / 10;           // e.g. 600
+  const fD = formatNumber(dividend), fQ = formatNumber(quotient);
+  const story = Math.random() < 0.3;
+  const question = story
+    ? pick(TENS_DIVIDE_STORIES)(fD, divisor)
+    : `Use mental math to find ${fD} ÷ ${divisor}.`;
+  const explanation = `Basic fact: ${factDividend} ÷ ${d} = ${q}. ` +
+    `Think in tens: ${formatNumber(dividend / 10)} tens ÷ ${d} tens = ${fQ}. ` +
+    `Check by multiplying: ${fQ} × ${divisor} = ${fD}.`;
+  if (!mc) return { question, answer: fQ, explanation };
+  const wrong = [];
+  for (const w of [quotient * 10, quotient / 10, quotient * 100, quotient + 10, quotient + 1]) {
+    if (Number.isInteger(w) && w > 0 && w !== quotient && !wrong.includes(w) && wrong.length < 3) wrong.push(w);
+  }
+  const choices = shuffleArray([fQ, ...wrong.map(formatNumber)]);
+  return { question, options: choices, correct: choices.indexOf(fQ), explanation };
+}
+
+/* ==========================================================
+   Topic 5, Lesson 5-2: Estimate Quotients with 2-Digit Divisors
+   ========================================================== */
+
+const ESTIMATE_QUOTIENT_STORIES = [
+  (a, b) => `A trail is ${a} meters long. Shondra walks ${b} meters of the trail each minute. About how many minutes will it take her to walk the trail?`,
+  (a, b) => `A scientist counted ${a} eggs in ${b} sea turtle nests. Each nest had about the same number of eggs. About how many eggs were in each nest?`,
+  (a, b) => `A farm of ${a} acres is divided into ${b} equal parts. About how many acres are in each part?`,
+  (a, b) => `A choir has ${b} days to learn a song with ${a} lines. About how many lines should it learn each day?`
+];
+
+/**
+ * Estimate a quotient with a 2-digit divisor using compatible numbers
+ * (1,976 ÷ 43 → 2,000 ÷ 40 = 50). Built from the compatible numbers, so
+ * the intended estimate is clear. The typed version names the compatible
+ * numbers so there is only one right answer.
+ */
+export function estimateQuotientCompatible(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  let d, q, s, D, C, divisor, dividend;
+  do {
+    d = randInt(2, 9); q = randInt(2, 9); s = pick([1, 1, 10]);
+    D = d * 10; C = D * q * s;
+    divisor = D + pick([-3, -2, -1, 1, 2, 3]);
+    const spread = Math.max(1, Math.floor(C * 0.04));
+    dividend = C + randInt(-spread, spread);
+  } while (dividend === C || dividend < 100);
+  const est = q * s;
+  const fA = formatNumber(dividend), fC = formatNumber(C), fE = formatNumber(est);
+  const story = Math.random() < 0.35;
+  const base = story ? pick(ESTIMATE_QUOTIENT_STORIES)(fA, divisor) : `Use compatible numbers to estimate ${fA} ÷ ${divisor}.`;
+  const explanation = `Find compatible numbers: ${fA} is close to ${fC} and ${divisor} is close to ${D}. ` +
+    `Basic fact: ${d * q} ÷ ${d} = ${q}. Use place-value patterns: ${fC} ÷ ${D} = ${fE}. ` +
+    `So ${fA} ÷ ${divisor} is about ${fE}.`;
+  if (!mc) {
+    return { question: `${base} (Use ${fC} ÷ ${D}.)`, answer: fE, explanation };
+  }
+  const wrong = [];
+  for (const w of [est * 10, est / 10, est * 100, est + 10 * s, est + s]) {
+    if (Number.isInteger(w) && w > 0 && w !== est && !wrong.includes(w) && wrong.length < 3) wrong.push(w);
+  }
+  const answer = `About ${fE}`;
+  const choices = shuffleArray([answer, ...wrong.map(w => `About ${formatNumber(w)}`)]);
+  return { question: base, options: choices, correct: choices.indexOf(answer), explanation };
+}
+
+/* ==========================================================
+   Topic 5, Lesson 5-3 and the study guide: divide by a 2-digit divisor
+   ========================================================== */
+
+const TWO_DIGIT_DIVIDE_STORIES = [
+  (a, b) => `Hal has ${a} cans of soup to put equally on ${b} shelves. How many cans go on each shelf?`,
+  (a, b) => `A rectangular poster has an area of ${a} square centimeters. Its width is ${b} centimeters. How long is the poster, in centimeters?`,
+  (a, b) => `Astronauts spent ${a} minutes installing ${b} tiles. Each tile took the same time. How many minutes did each tile take?`,
+  (a, b) => `A ${a}-yard road is divided into ${b} parts of equal length. How many yards long is each part?`
+];
+
+/** Partial-quotient steps: divisor × part, then subtract, for hundreds, tens and ones. */
+function partialQuotientSteps(dividend, divisor, quotient) {
+  const h = Math.floor(quotient / 100) * 100;
+  const t = Math.floor((quotient % 100) / 10) * 10;
+  const o = quotient % 10;
+  const parts = [];
+  const used = [];
+  let left = dividend;
+  for (const p of [h, t, o]) {
+    if (p === 0) continue;
+    const prod = divisor * p;
+    parts.push(`${divisor} × ${formatNumber(p)} = ${formatNumber(prod)}, and ${formatNumber(left)} − ${formatNumber(prod)} = ${formatNumber(left - prod)}`);
+    used.push(formatNumber(p));
+    left -= prod;
+  }
+  return `${parts.join(". ")}. Add the parts: ${used.join(" + ")} = ${formatNumber(quotient)}.`;
+}
+
+/**
+ * Divide by a 2-digit divisor with no remainder.
+ * size "small" (default): 3-digit dividend, 2-digit quotient (Lesson 5-3,
+ * area model). size "large": 4-digit dividend, 3-digit quotient
+ * (Topic 5 study guide, e.g. 4,944 ÷ 12).
+ */
+export function divideByTwoDigit(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const large = opts.size === "large";
+  let divisor, quotient, dividend;
+  do {
+    if (large) { divisor = randInt(11, 49); quotient = randInt(100, 999); }
+    else { divisor = randInt(11, 29); quotient = randInt(11, 39); }
+    dividend = divisor * quotient;
+  } while (large ? (dividend < 1000 || dividend > 9999) : (dividend > 999 || quotient % 10 === 0));
+  const fA = formatNumber(dividend), fQ = formatNumber(quotient);
+  const story = !large && Math.random() < 0.3;
+  const question = story ? pick(TWO_DIGIT_DIVIDE_STORIES)(fA, divisor) : `Find ${fA} ÷ ${divisor}.`;
+  const explanation = `Use partial quotients (like the area model): ${partialQuotientSteps(dividend, divisor, quotient)} ` +
+    `Check: ${fQ} × ${divisor} = ${fA}.`;
+  if (!mc) return { question, answer: fQ, explanation };
+  const wrong = [];
+  for (const w of [quotient + 1, quotient - 1, quotient * 10, quotient + 10, quotient - 10]) {
+    if (w > 0 && w !== quotient && !wrong.includes(w) && wrong.length < 3) wrong.push(w);
+  }
+  const choices = shuffleArray([fQ, ...wrong.map(formatNumber)]);
+  return { question, options: choices, correct: choices.indexOf(fQ), explanation };
+}
+
+/**
+ * Long division, 3-digit ÷ 1-digit, no remainder (Homework 11-16).
+ * The explanation walks through divide, multiply, subtract, bring down.
+ */
+export function longDivision1Digit(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const divisor = randInt(2, 9);
+  const quotient = randInt(Math.ceil(100 / divisor), Math.floor(999 / divisor));
+  const dividend = divisor * quotient;
+  const digits = String(dividend).split("").map(Number);
+  const steps = [];
+  let rem = 0, started = false, note = "";
+  for (let i = 0; i < digits.length; i++) {
+    const cur = rem * 10 + digits[i];
+    const qd = Math.floor(cur / divisor);
+    if (!started && qd === 0) {
+      note = `${cur} is less than ${divisor}, so start with the first two digits. `;
+      rem = cur;
+      continue;
+    }
+    started = true;
+    steps.push(`${cur} ÷ ${divisor} = ${qd}, ${qd} × ${divisor} = ${qd * divisor}, ${cur} − ${qd * divisor} = ${cur - qd * divisor}`);
+    rem = cur - qd * divisor;
+  }
+  const question = `Use long division to find ${dividend} ÷ ${divisor}.`;
+  const explanation = `Divide, multiply, subtract, bring down. ${note}${steps.join(". Bring down the next digit: ")}. ` +
+    `So ${dividend} ÷ ${divisor} = ${quotient}. Check: ${quotient} × ${divisor} = ${dividend}.`;
+  const answer = String(quotient);
+  if (!mc) return { question, answer, explanation };
+  const wrong = [];
+  for (const w of [quotient + 1, quotient - 1, quotient + 10, quotient - 10, quotient * 10]) {
+    if (w > 0 && w !== quotient && !wrong.includes(w) && wrong.length < 3) wrong.push(w);
+  }
+  const choices = shuffleArray([answer, ...wrong.map(String)]);
+  return { question, options: choices, correct: choices.indexOf(answer), explanation };
+}
+
+/* ==========================================================
+   Topic 5 test study guide: remainders
+   ========================================================== */
+
+/**
+ * Interpret a remainder in a story: how many full groups, how many are
+ * left over (Topic 5 study guide: 218 trains in boxes of 20), or how
+ * many groups are needed for ALL of them (623 students, buses of 43).
+ * The typed answer is always a single whole number.
+ */
+export function interpretRemainder(opts = {}) {
+  const mc = opts.multipleChoice !== false;
+  const size = randInt(11, 48);
+  const q = randInt(5, 30);
+  const r = randInt(1, size - 1);
+  const n = size * q + r;
+  const fN = formatNumber(n);
+  const kind = pick(["full", "left", "all"]);
+  const div = `${fN} ÷ ${size} = ${q} R${r}`;
+  let question, ans, explanation, cands;
+  if (kind === "full") {
+    question = `A factory makes ${fN} toy trains. Each box holds ${size} trains. How many boxes can be completely filled?`;
+    ans = q;
+    explanation = `${div}. The quotient, ${q}, is the number of full boxes. The ${r} trains left over are not enough to fill another box.`;
+    cands = [q + 1, r, q - 1, q + 2, q + 3];
+  } else if (kind === "left") {
+    question = `A bakery has ${fN} muffins. It packs them in boxes of ${size}. After filling as many boxes as it can, how many muffins are left over?`;
+    ans = r;
+    explanation = `${div}. ${q} full boxes use ${q} × ${size} = ${formatNumber(q * size)} muffins. ${fN} − ${formatNumber(q * size)} = ${r} left over (the remainder).`;
+    cands = [q, r + 1, size - r, q + 1, r - 1, r + 2];
+  } else {
+    question = `There are ${fN} students going on a field trip. Each bus holds ${size} students. How many buses are needed to take ALL the students?`;
+    ans = q + 1;
+    explanation = `${div}. ${q} buses carry ${formatNumber(q * size)} students, but ${r} students are still left, so one more bus is needed: ${q + 1} buses.`;
+    cands = [q, q + 2, r, q - 1];
+  }
+  const answer = String(ans);
+  if (!mc) return { question, answer, explanation };
+  const wrong = [];
+  for (const w of cands) {
+    if (w > 0 && w !== ans && !wrong.includes(w) && wrong.length < 3) wrong.push(w);
+  }
+  const choices = shuffleArray([answer, ...wrong.map(String)]);
+  return { question, options: choices, correct: choices.indexOf(answer), explanation };
 }
